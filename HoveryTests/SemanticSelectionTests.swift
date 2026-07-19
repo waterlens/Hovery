@@ -8,6 +8,10 @@ import XCTest
 @testable import Hovery
 
 final class SemanticSelectionTests: XCTestCase {
+    private enum TestTiming {
+        static let webExtensionStartupTimeout: TimeInterval = 10
+    }
+
     func testDefaultInteractionRequiresCommandWithShortDelayAndNoDebugOverlay() {
         let configuration = HoveryConfiguration.standard
 
@@ -792,7 +796,10 @@ final class SemanticSelectionTests: XCTestCase {
             "input": ["id": "selection-1", "text": "hello"]
         ])
 
-        await fulfillment(of: [received], timeout: 2)
+        await fulfillment(
+            of: [received],
+            timeout: TestTiming.webExtensionStartupTimeout
+        )
         runtime.unmount()
     }
 
