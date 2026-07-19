@@ -35,12 +35,6 @@ just build-all Release
 
 Generated projects and all build products live outside version control. Common development, installation, and cleanup commands are listed by `just`.
 
-## Release
-
-CI builds, tests, and validates both distributable artifacts on GitHub's macOS 26 runner through one atomic release script. Version tags run the Release workflow. Developer ID and App Store Connect secrets enable signing and notarization; without them, the workflow publishes an explicitly marked ad-hoc-signed prerelease.
-
-See [Releasing.md](Docs/Releasing.md) for the complete release procedure and required secrets.
-
 ## License
 
 Copyright © 2026 waterlens.
