@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-package:
+    name: Build, test, and package
+    runs-on: macos-26
+    timeout-minutes: 40
+
+    defaults:
+      run:
+        shell: sh
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: brew install just xcodegen
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          xcodegen --version
+          just --version
+
+      - name: Run test suites
+        run: just test
+
+      - name: Build release artifacts without distribution credentials
+        run: |
+          version=$(Scripts/package-release.sh --project-version)
+          HOVERY_RELEASE_SIGNING=adhoc Scripts/package-release.sh "$version" "$GITHUB_RUN_NUMBER"
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hovery-${{ github.sha }}
+          path: .build/release/artifacts/
+          if-no-files-found: error
+          retention-days: 7

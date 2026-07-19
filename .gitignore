@@ -1,7 +1,12 @@
 .DS_Store
-.derived/
-.derived-unsigned/
-.derived-tests/
-.derived-signature-check/
-.DS_Store
 .build/
+.derived*/
+.swiftpm/
+DerivedData/
+*.xcresult
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+
+# The native helper is assembled from source for each build and release.
+Examples/AppleDictionary/Extension/AppleDictionary.hoveryextension/native/AppleDictionaryHelper

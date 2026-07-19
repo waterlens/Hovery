@@ -1,0 +1,162 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to release, for example v0.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build macOS release
+    runs-on: macos-26
+    timeout-minutes: 60
+    environment: release
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+
+    defaults:
+      run:
+        shell: sh
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: Validate release version
+        id: version
+        run: |
+          if ! printf '%s\n' "$RELEASE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            printf '%s\n' "Release tags must use vMAJOR.MINOR.PATCH." >&2
+            exit 1
+          fi
+          version=${RELEASE_TAG#v}
+          project_version=$(Scripts/package-release.sh --project-version)
+          if [ "$version" != "$project_version" ]; then
+            printf '%s\n' "Tag $version does not match project version $project_version." >&2
+            exit 1
+          fi
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+
+      - name: Install build tools
+        run: brew install just xcodegen
+
+      - name: Run test suites
+        run: just test
+
+      - name: Determine release security mode
+        id: security
+        env:
+          CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          NOTARY_KEY: ${{ secrets.APP_STORE_CONNECT_KEY_P8_BASE64 }}
+          NOTARY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          signing=adhoc
+          notarize=false
+          if [ -n "$CERTIFICATE_P12" ] && [ -n "$CERTIFICATE_PASSWORD" ] && \
+             [ -n "$SIGNING_IDENTITY" ] && [ -n "$TEAM_ID" ]; then
+            signing=developer-id
+            if [ -n "$NOTARY_KEY" ] && [ -n "$NOTARY_KEY_ID" ] && \
+               [ -n "$NOTARY_ISSUER_ID" ]; then
+              notarize=true
+            fi
+          fi
+          printf 'signing=%s\n' "$signing" >> "$GITHUB_OUTPUT"
+          printf 'notarize=%s\n' "$notarize" >> "$GITHUB_OUTPUT"
+
+      - name: Import Developer ID certificate
+        if: steps.security.outputs.signing == 'developer-id'
+        env:
+          CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          certificate_path="$RUNNER_TEMP/developer-id.p12"
+          keychain_path="$RUNNER_TEMP/hovery-build.keychain-db"
+          keychain_password="hovery-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          printf '%s' "$CERTIFICATE_P12" | base64 --decode > "$certificate_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" -k "$keychain_path" \
+            -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security list-keychains -d user -s "$keychain_path"
+          security default-keychain -d user -s "$keychain_path"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$keychain_password" "$keychain_path"
+          security find-identity -v -p codesigning "$keychain_path"
+          printf 'HOVERY_CODE_SIGN_IDENTITY=%s\n' "$SIGNING_IDENTITY" >> "$GITHUB_ENV"
+          printf 'HOVERY_DEVELOPMENT_TEAM=%s\n' "$TEAM_ID" >> "$GITHUB_ENV"
+
+      - name: Configure App Store Connect API key
+        if: steps.security.outputs.notarize == 'true'
+        env:
+          NOTARY_KEY: ${{ secrets.APP_STORE_CONNECT_KEY_P8_BASE64 }}
+          NOTARY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          notary_key_path="$RUNNER_TEMP/AuthKey_${NOTARY_KEY_ID}.p8"
+          printf '%s' "$NOTARY_KEY" | base64 --decode > "$notary_key_path"
+          chmod 600 "$notary_key_path"
+          printf 'HOVERY_NOTARY_KEY_PATH=%s\n' "$notary_key_path" >> "$GITHUB_ENV"
+          printf 'HOVERY_NOTARY_KEY_ID=%s\n' "$NOTARY_KEY_ID" >> "$GITHUB_ENV"
+          printf 'HOVERY_NOTARY_ISSUER_ID=%s\n' "$NOTARY_ISSUER_ID" >> "$GITHUB_ENV"
+
+      - name: Package application and dictionary extension
+        env:
+          HOVERY_RELEASE_SIGNING: ${{ steps.security.outputs.signing }}
+          HOVERY_RELEASE_NOTARIZE: ${{ steps.security.outputs.notarize == 'true' && '1' || '0' }}
+        run: Scripts/package-release.sh "${{ steps.version.outputs.version }}" "$GITHUB_RUN_NUMBER"
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hovery-${{ env.RELEASE_TAG }}
+          path: .build/release/artifacts/
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        env:
+          SIGNING_MODE: ${{ steps.security.outputs.signing }}
+          NOTARIZED: ${{ steps.security.outputs.notarize }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          artifact_directory=.build/release/artifacts
+          if [ "$SIGNING_MODE" = developer-id ] && [ "$NOTARIZED" = true ]; then
+            distribution_note="Developer ID signed and notarized for macOS Gatekeeper."
+            prerelease=
+          else
+            distribution_note="This prerelease is not notarized. See RELEASE-INFO.txt before installing."
+            prerelease=--prerelease
+          fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$artifact_directory"/* --clobber
+          else
+            gh release create "$RELEASE_TAG" "$artifact_directory"/* \
+              --verify-tag \
+              --title "Hovery $VERSION" \
+              --notes "$distribution_note" \
+              --generate-notes \
+              $prerelease
+          fi

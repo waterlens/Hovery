@@ -103,7 +103,7 @@ struct MenuContentView: View {
             HStack(spacing: Layout.pairedButtonSpacing) {
                 actionButton("About Hovery", systemImage: "info.circle") {
                     NSApp.activate(ignoringOtherApps: true)
-                    NSApp.orderFrontStandardAboutPanel(nil)
+                    showAboutPanel()
                 }
                 actionButton("Settings…", systemImage: "gearshape") {
                     NSApp.activate(ignoringOtherApps: true)
@@ -198,5 +198,19 @@ struct MenuContentView: View {
                 loginItemAlert = .failure(error.localizedDescription)
             }
         }
+    }
+
+    private func showAboutPanel() {
+        let marketingVersion = Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleShortVersionString"
+        ) as? String ?? ""
+        let credits = NSAttributedString(
+            string: "Created by waterlens\nLicensed under the Apache License 2.0"
+        )
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .applicationVersion: marketingVersion,
+            .version: "",
+            .credits: credits
+        ])
     }
 }

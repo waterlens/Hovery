@@ -1,0 +1,48 @@
+<p align="center">
+  <img src="Docs/Brand/HoveryIconSource.png" width="128" height="128" alt="Hovery icon">
+</p>
+
+# Hovery
+
+Hovery recognizes the visible text beneath the pointer on macOS with Vision OCR. It can identify a word, sentence, paragraph, or text block without selecting or clicking the source text, then present results from isolated HTML/ESM extensions.
+
+## Requirements
+
+- macOS 26 or later
+- Screen & System Audio Recording permission
+- Accessibility permission
+
+## Install
+
+Download the current DMG from [GitHub Releases](https://github.com/waterlens/Hovery/releases), open it, and drag Hovery into Applications.
+
+At first launch, grant both permissions shown by Hovery. Recognition is enabled by default while Command is held. Timing, activation keys, OCR behavior, and debugging options are configurable from Settings.
+
+## Extensions
+
+Release assets include the Apple Dictionary example as `AppleDictionary-<version>.hoveryextension.zip`. Extract it, open **Extensions…**, copy the `.hoveryextension` directory into the extensions folder, then trust and enable its native helper.
+
+Extensions are ordinary isolated web pages with ESM entry points. See [WebExtensions.md](Docs/WebExtensions.md) and the examples under [`Examples`](Examples).
+
+## Build
+
+Install [XcodeGen](https://github.com/yonaskolb/XcodeGen) and [just](https://github.com/casey/just), then run:
+
+```sh
+just test
+just build-all Release
+```
+
+Generated projects and all build products live outside version control. Common development, installation, and cleanup commands are listed by `just`.
+
+## Release
+
+CI builds, tests, and validates both distributable artifacts on GitHub's macOS 26 runner through one atomic release script. Version tags run the Release workflow. Developer ID and App Store Connect secrets enable signing and notarization; without them, the workflow publishes an explicitly marked ad-hoc-signed prerelease.
+
+See [Releasing.md](Docs/Releasing.md) for the complete release procedure and required secrets.
+
+## License
+
+Copyright © 2026 waterlens.
+
+Licensed under the [Apache License 2.0](LICENSE).
