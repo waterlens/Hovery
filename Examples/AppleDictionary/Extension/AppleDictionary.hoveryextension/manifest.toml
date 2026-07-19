@@ -1,0 +1,18 @@
+[extension]
+id = "org.hovery.example.apple-dictionary"
+name = "Apple Dictionary"
+input = "word"
+order = 100
+
+[view]
+document = "web/index.html"
+module = "web/main.js"
+
+[permissions]
+network = []
+capabilities = ["org.hovery.capability.system-dictionary"]
+selectionOverlay = true
+
+[native]
+executable = "native/AppleDictionaryHelper"
+protocol = "json-lines-v1"

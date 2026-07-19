@@ -1,0 +1,45 @@
+:root {
+  color-scheme: light dark;
+  font-family: ui-sans-serif, -apple-system, sans-serif;
+}
+
+body {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 16px 18px 20px;
+  background: transparent;
+  color: CanvasText;
+}
+
+.comparison {
+  display: grid;
+  gap: 10px;
+}
+
+.selection {
+  padding: 11px 13px 13px;
+  border: 1px solid color-mix(in srgb, CanvasText 12%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, Canvas 72%, transparent);
+}
+
+h2 {
+  margin: 0 0 6px;
+  color: GrayText;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.selection-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.selection-unavailable {
+  color: GrayText;
+  font-style: italic;
+}

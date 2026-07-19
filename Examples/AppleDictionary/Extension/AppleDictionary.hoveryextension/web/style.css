@@ -1,0 +1,46 @@
+:root {
+  color-scheme: light dark;
+  font-family: ui-serif, Georgia, serif;
+}
+
+body {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 18px 22px 24px;
+  background: transparent;
+  color: CanvasText;
+}
+
+.dictionary-entry {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.plain-definition h1 {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.dictionary-name,
+.status {
+  color: GrayText;
+  font-family: ui-sans-serif, -apple-system, sans-serif;
+}
+
+.dictionary-name {
+  margin: 5px 0 16px;
+  font-size: 12px;
+}
+
+.definition {
+  margin: 14px 0 0;
+  white-space: pre-wrap;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.status {
+  margin: 0;
+  font-size: 13px;
+}

@@ -1,0 +1,13 @@
+[extension]
+id = "org.hovery.example.streaming-echo"
+name = "Streaming Echo"
+input = "word"
+order = 0
+
+[view]
+document = "web/index.html"
+module = "web/main.js"
+
+[permissions]
+network = []
+selectionOverlay = true

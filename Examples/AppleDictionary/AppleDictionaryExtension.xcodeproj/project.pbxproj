@@ -1,0 +1,469 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXAggregateTarget section */
+		949B6B93FD89BB30E6FD3656 /* AppleDictionaryExtension */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = 3220282B6FFA2DA41DAFE32B /* Build configuration list for PBXAggregateTarget "AppleDictionaryExtension" */;
+			buildPhases = (
+				04FE9A48D9EA77CCFD837C8C /* Assemble Extension Package */,
+			);
+			dependencies = (
+				4769E616AE92B58FCB4C7C55 /* PBXTargetDependency */,
+			);
+			name = AppleDictionaryExtension;
+			packageProductDependencies = (
+			);
+			productName = AppleDictionaryExtension;
+		};
+/* End PBXAggregateTarget section */
+
+/* Begin PBXBuildFile section */
+		59B9BF98B1F01432CF492D05 /* AppleDictionaryHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 236DE980CD6CEB25A8225118 /* AppleDictionaryHelperTests.swift */; };
+		CE77A36F21F892ED16FE9729 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4277E0F5763EA70DAE4CBA3 /* main.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		3A3215692F39FD0E7820B691 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BF44C24A6D1D3EA386B3DB4B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E67D2562A09BE1BE24AD6146;
+			remoteInfo = AppleDictionaryHelper;
+		};
+		415B8AC5C171D35F40108E21 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BF44C24A6D1D3EA386B3DB4B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E67D2562A09BE1BE24AD6146;
+			remoteInfo = AppleDictionaryHelper;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		236DE980CD6CEB25A8225118 /* AppleDictionaryHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleDictionaryHelperTests.swift; sourceTree = "<group>"; };
+		27EF094E2F6DBBD0FBC506BD /* AppleDictionaryHelperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AppleDictionaryHelperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD3CC888D02F3356C72BA34B /* AppleDictionaryHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = AppleDictionaryHelper; sourceTree = BUILT_PRODUCTS_DIR; };
+		F4277E0F5763EA70DAE4CBA3 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		552EE1928F2FA9CB99D2CE64 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				F4277E0F5763EA70DAE4CBA3 /* main.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		79F878F4F6914DBF5D0310D1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BD3CC888D02F3356C72BA34B /* AppleDictionaryHelper */,
+				27EF094E2F6DBBD0FBC506BD /* AppleDictionaryHelperTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CDF968D8DDADF7D4507EAEAE = {
+			isa = PBXGroup;
+			children = (
+				552EE1928F2FA9CB99D2CE64 /* Sources */,
+				E4B2F0C5843B6C5A305C1C7D /* Tests */,
+				79F878F4F6914DBF5D0310D1 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E4B2F0C5843B6C5A305C1C7D /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				236DE980CD6CEB25A8225118 /* AppleDictionaryHelperTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		98C991B1060C8AF56413638D /* AppleDictionaryHelperTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B86098A3016D555A4BB644A7 /* Build configuration list for PBXNativeTarget "AppleDictionaryHelperTests" */;
+			buildPhases = (
+				48EB0F33DCED1D89AE042FA7 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				794C93BA03F01E29BB01BE04 /* PBXTargetDependency */,
+			);
+			name = AppleDictionaryHelperTests;
+			packageProductDependencies = (
+			);
+			productName = AppleDictionaryHelperTests;
+			productReference = 27EF094E2F6DBBD0FBC506BD /* AppleDictionaryHelperTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E67D2562A09BE1BE24AD6146 /* AppleDictionaryHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3A70D956D967AFBD4C4695AD /* Build configuration list for PBXNativeTarget "AppleDictionaryHelper" */;
+			buildPhases = (
+				774126E90020CD733C3A012E /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AppleDictionaryHelper;
+			packageProductDependencies = (
+			);
+			productName = AppleDictionaryHelper;
+			productReference = BD3CC888D02F3356C72BA34B /* AppleDictionaryHelper */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BF44C24A6D1D3EA386B3DB4B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					949B6B93FD89BB30E6FD3656 = {
+						DevelopmentTeam = 38D7254X2P;
+						ProvisioningStyle = Automatic;
+					};
+					98C991B1060C8AF56413638D = {
+						DevelopmentTeam = 38D7254X2P;
+						ProvisioningStyle = Automatic;
+					};
+					E67D2562A09BE1BE24AD6146 = {
+						DevelopmentTeam = 38D7254X2P;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = A7E469CB86879B89301567A4 /* Build configuration list for PBXProject "AppleDictionaryExtension" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = CDF968D8DDADF7D4507EAEAE;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 79F878F4F6914DBF5D0310D1 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				949B6B93FD89BB30E6FD3656 /* AppleDictionaryExtension */,
+				E67D2562A09BE1BE24AD6146 /* AppleDictionaryHelper */,
+				98C991B1060C8AF56413638D /* AppleDictionaryHelperTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		04FE9A48D9EA77CCFD837C8C /* Assemble Extension Package */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/AppleDictionaryHelper",
+			);
+			name = "Assemble Extension Package";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Extension/AppleDictionary.hoveryextension/native/AppleDictionaryHelper",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "EXTENSION_NATIVE_DIR=\"$SRCROOT/Extension/AppleDictionary.hoveryextension/native\"\n/bin/mkdir -p \"$EXTENSION_NATIVE_DIR\"\n/usr/bin/ditto \"$BUILT_PRODUCTS_DIR/AppleDictionaryHelper\" \"$EXTENSION_NATIVE_DIR/AppleDictionaryHelper\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		48EB0F33DCED1D89AE042FA7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				59B9BF98B1F01432CF492D05 /* AppleDictionaryHelperTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		774126E90020CD733C3A012E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CE77A36F21F892ED16FE9729 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4769E616AE92B58FCB4C7C55 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E67D2562A09BE1BE24AD6146 /* AppleDictionaryHelper */;
+			targetProxy = 415B8AC5C171D35F40108E21 /* PBXContainerItemProxy */;
+		};
+		794C93BA03F01E29BB01BE04 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E67D2562A09BE1BE24AD6146 /* AppleDictionaryHelper */;
+			targetProxy = 3A3215692F39FD0E7820B691 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		16A81F03DB88236845977538 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.hovery.examples.AppleDictionaryHelperTests;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		2241E31C3B49CDC0B5AD056C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		3DE8D44B9791809F55DBF32A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.hovery.examples.AppleDictionaryHelper;
+				PRODUCT_NAME = AppleDictionaryHelper;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		5D6D17F61BD51EC6A9296E3B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 38D7254X2P;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		BAC879A6CBD0441D00F15277 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.hovery.examples.AppleDictionaryHelperTests;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		BBD79B777ED2BE08F967755C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 38D7254X2P;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		C7A5E0C7EE989D3B5158BA04 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		E8B354E7DDC2CFD47AA3F692 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.hovery.examples.AppleDictionaryHelper;
+				PRODUCT_NAME = AppleDictionaryHelper;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3220282B6FFA2DA41DAFE32B /* Build configuration list for PBXAggregateTarget "AppleDictionaryExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C7A5E0C7EE989D3B5158BA04 /* Debug */,
+				2241E31C3B49CDC0B5AD056C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		3A70D956D967AFBD4C4695AD /* Build configuration list for PBXNativeTarget "AppleDictionaryHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E8B354E7DDC2CFD47AA3F692 /* Debug */,
+				3DE8D44B9791809F55DBF32A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A7E469CB86879B89301567A4 /* Build configuration list for PBXProject "AppleDictionaryExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BBD79B777ED2BE08F967755C /* Debug */,
+				5D6D17F61BD51EC6A9296E3B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B86098A3016D555A4BB644A7 /* Build configuration list for PBXNativeTarget "AppleDictionaryHelperTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BAC879A6CBD0441D00F15277 /* Debug */,
+				16A81F03DB88236845977538 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BF44C24A6D1D3EA386B3DB4B /* Project object */;
+}

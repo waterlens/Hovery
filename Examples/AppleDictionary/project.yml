@@ -1,0 +1,52 @@
+name: AppleDictionaryExtension
+options:
+  bundleIdPrefix: app.hovery.examples
+  deploymentTarget:
+    macOS: "26.0"
+settings:
+  base:
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    SWIFT_VERSION: "6.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: 38D7254X2P
+targets:
+  AppleDictionaryHelper:
+    type: tool
+    platform: macOS
+    sources:
+      - Sources
+    settings:
+      base:
+        PRODUCT_NAME: AppleDictionaryHelper
+        PRODUCT_BUNDLE_IDENTIFIER: app.hovery.examples.AppleDictionaryHelper
+        SKIP_INSTALL: YES
+    scheme:
+      testTargets:
+        - AppleDictionaryHelperTests
+  AppleDictionaryHelperTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests
+    dependencies:
+      - target: AppleDictionaryHelper
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.hovery.examples.AppleDictionaryHelperTests
+        GENERATE_INFOPLIST_FILE: YES
+aggregateTargets:
+  AppleDictionaryExtension:
+    targets:
+      - AppleDictionaryHelper
+    buildScripts:
+      - name: Assemble Extension Package
+        inputFiles:
+          - $(BUILT_PRODUCTS_DIR)/AppleDictionaryHelper
+        outputFiles:
+          - $(SRCROOT)/Extension/AppleDictionary.hoveryextension/native/AppleDictionaryHelper
+        script: |
+          EXTENSION_NATIVE_DIR="$SRCROOT/Extension/AppleDictionary.hoveryextension/native"
+          /bin/mkdir -p "$EXTENSION_NATIVE_DIR"
+          /usr/bin/ditto "$BUILT_PRODUCTS_DIR/AppleDictionaryHelper" "$EXTENSION_NATIVE_DIR/AppleDictionaryHelper"
+    scheme: {}
