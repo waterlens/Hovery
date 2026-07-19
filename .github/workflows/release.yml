@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Check out release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
           fetch-depth: 0
@@ -130,7 +130,7 @@ jobs:
         run: Scripts/package-release.sh "${{ steps.version.outputs.version }}" "$GITHUB_RUN_NUMBER"
 
       - name: Upload workflow artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Hovery-${{ env.RELEASE_TAG }}
           path: .build/release/artifacts/

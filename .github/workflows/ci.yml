@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install build tools
         run: brew install just xcodegen
@@ -47,7 +47,7 @@ jobs:
           HOVERY_RELEASE_SIGNING=adhoc Scripts/package-release.sh "$version" "$GITHUB_RUN_NUMBER"
 
       - name: Upload packaged artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Hovery-${{ github.sha }}
           path: .build/release/artifacts/
