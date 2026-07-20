@@ -55,6 +55,7 @@ overlay.showInput()
 overlay.show(selections.sentence, {
   material: "hudWindow",
   materialOpacity: 0.16,
+  tintOpacity: 0.1,
   fill: "rgba(255, 159, 10, 0.08)",
   stroke: "orange",
   lineWidth: 1.5,
@@ -69,7 +70,7 @@ overlay.show([
 overlay.clear()
 ```
 
-`fill`, `stroke`, and `shadow.color` accept CSS colors. They are resolved to sRGB by the extension's Web environment before crossing the native boundary; there is no host color palette. `material` accepts `none` or an AppKit visual-effect material such as `hudWindow`, `popover`, `menu`, `sidebar`, `contentBackground`, or `underPageBackground`.
+`fill`, `stroke`, and `shadow.color` accept CSS colors. They are resolved to sRGB by the extension's Web environment before crossing the native boundary; there is no host color palette. `material` accepts `none` or an AppKit visual-effect material such as `hudWindow`, `popover`, `menu`, `sidebar`, `contentBackground`, or `underPageBackground`. `tintOpacity` applies the border's `stroke` color to the material without changing the border opacity.
 
 Selections carry request-scoped opaque IDs. Hovery maps those IDs back to its own geometry; extensions cannot submit arbitrary screen coordinates. Stale IDs are ignored. The overlay is cleared automatically when the request is aborted, the results panel closes, or the active provider changes. Only the active provider's overlay is visible.
 
@@ -83,6 +84,7 @@ strokeOpacity = 0.55
 lineWidth = 1.0
 material = "hudWindow"
 materialOpacity = 0.18
+tintOpacity = 0.1
 ```
 
 ## Native capabilities

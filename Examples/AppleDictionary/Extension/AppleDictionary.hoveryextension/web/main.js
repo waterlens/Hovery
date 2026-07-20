@@ -4,6 +4,7 @@ export async function present({ input, root, signal, capabilities, overlay }) {
   overlay.showInput({
     material: "hudWindow",
     materialOpacity: 0.16,
+    tintOpacity: 0.1,
     fill: "transparent",
     stroke: "rgba(10, 132, 255, 0.82)",
     lineWidth: 1.25,

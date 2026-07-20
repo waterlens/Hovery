@@ -281,6 +281,7 @@ final class SemanticSelectionTests: XCTestCase {
         XCTAssertTrue(text.contains("[extensionOverlay]"))
         XCTAssertTrue(text.contains("fillOpacity = 0.2"))
         XCTAssertTrue(text.contains("materialOpacity = 0.18"))
+        XCTAssertTrue(text.contains("tintOpacity = 0.1"))
         XCTAssertTrue(text.contains("requiredModifiers = [\"command\", \"shift\"]"))
         XCTAssertFalse(text.contains("[webExtensions]"))
         XCTAssertTrue(extensionText.contains("directory = \"Extensions\""))
@@ -820,6 +821,7 @@ final class SemanticSelectionTests: XCTestCase {
             lineCap: "round",
             material: "hudWindow",
             materialOpacity: 0.2,
+            tintOpacity: 0.12,
             shadow: { color: "rgb(0 0 0 / 25%)", radius: 4, x: 1, y: -1 }
           })
         }
@@ -845,6 +847,7 @@ final class SemanticSelectionTests: XCTestCase {
             XCTAssertEqual(item?.style.lineCap, "round")
             XCTAssertEqual(item?.style.material, "hudWindow")
             XCTAssertEqual(item?.style.materialOpacity, 0.2)
+            XCTAssertEqual(item?.style.tintOpacity, 0.12)
             XCTAssertEqual(item?.style.shadowRadius, 4)
             XCTAssertEqual(item?.style.shadowOffsetX, 1)
             XCTAssertEqual(item?.style.shadowOffsetY, -1)

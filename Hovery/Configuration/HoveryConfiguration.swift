@@ -362,6 +362,7 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
         var lineWidth = 1.0
         var material = "hudWindow"
         var materialOpacity = 0.18
+        var tintOpacity = 0.1
 
         private enum CodingKeys: String, CodingKey {
             case enabled
@@ -370,6 +371,7 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
             case lineWidth
             case material
             case materialOpacity
+            case tintOpacity
         }
 
         init() {}
@@ -388,6 +390,8 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
                 ?? defaults.material
             materialOpacity = try container.decodeIfPresent(Double.self, forKey: .materialOpacity)
                 ?? defaults.materialOpacity
+            tintOpacity = try container.decodeIfPresent(Double.self, forKey: .tintOpacity)
+                ?? defaults.tintOpacity
         }
     }
 
@@ -727,6 +731,9 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
         value.extensionOverlay.materialOpacity = value.extensionOverlay.materialOpacity.clamped(
             to: Limits.Overlay.opacity
         )
+        value.extensionOverlay.tintOpacity = value.extensionOverlay.tintOpacity.clamped(
+            to: Limits.Overlay.opacity
+        )
 
         value.resultsPresentation.width = value.resultsPresentation.width.clamped(
             to: Limits.ResultsPresentation.width
@@ -1035,6 +1042,7 @@ final class HoverySettings: ObservableObject {
         lineWidth = \(tomlNumber(extensionOverlay.lineWidth))
         material = \(tomlString(extensionOverlay.material))
         materialOpacity = \(tomlNumber(extensionOverlay.materialOpacity))
+        tintOpacity = \(tomlNumber(extensionOverlay.tintOpacity))
 
         [resultsPresentation]
         enabled = \(resultsPresentation.enabled)

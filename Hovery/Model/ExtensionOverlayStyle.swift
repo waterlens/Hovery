@@ -25,6 +25,7 @@ struct WebExtensionOverlayStyle: Equatable, Sendable {
     var lineCap: String? = nil
     var material: String? = nil
     var materialOpacity: Double? = nil
+    var tintOpacity: Double? = nil
     var shadowColor: OverlayRGBAColor? = nil
     var shadowRadius: Double? = nil
     var shadowOffsetX: Double? = nil

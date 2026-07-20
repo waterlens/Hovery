@@ -148,6 +148,7 @@ final class HighlightOverlayController {
         panel.hasShadow = false
         panel.ignoresMouseEvents = true
         panel.hidesOnDeactivate = false
+        panel.animationBehavior = .none
         panel.level = .statusBar
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
         panel.isReleasedWhenClosed = false
@@ -232,7 +233,16 @@ private final class ExtensionOverlayBackdropView: NSView {
             }
             guard hasRegion else { continue }
 
-            let effectView = NSVisualEffectView(frame: bounds)
+            let backdrop = NSView(frame: bounds)
+            backdrop.autoresizingMask = [.width, .height]
+            backdrop.wantsLayer = true
+
+            let mask = CAShapeLayer()
+            mask.frame = backdrop.bounds
+            mask.path = path
+            backdrop.layer?.mask = mask
+
+            let effectView = NSVisualEffectView(frame: backdrop.bounds)
             effectView.autoresizingMask = [.width, .height]
             effectView.material = material
             effectView.blendingMode = .behindWindow
@@ -240,13 +250,17 @@ private final class ExtensionOverlayBackdropView: NSView {
             effectView.alphaValue = CGFloat(
                 min(max(item.style.materialOpacity ?? configuration.materialOpacity, 0), 1)
             )
-            effectView.wantsLayer = true
+            backdrop.addSubview(effectView)
 
-            let mask = CAShapeLayer()
-            mask.frame = effectView.bounds
-            mask.path = path
-            effectView.layer?.mask = mask
-            addSubview(effectView)
+            let tintView = NSView(frame: backdrop.bounds)
+            tintView.autoresizingMask = [.width, .height]
+            tintView.wantsLayer = true
+            let tintOpacity = min(max(item.style.tintOpacity ?? configuration.tintOpacity, 0), 1)
+            let tintColor = item.style.strokeColor?.color ?? .separatorColor
+            tintView.layer?.backgroundColor = tintColor.withAlphaComponent(CGFloat(tintOpacity)).cgColor
+            backdrop.addSubview(tintView)
+
+            addSubview(backdrop)
         }
     }
 }

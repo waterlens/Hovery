@@ -11,6 +11,7 @@ export async function present({ input, selections, root, signal, overlay }) {
       style: {
         material: "hudWindow",
         materialOpacity: 0.16,
+        tintOpacity: 0.1,
         fill: "rgba(175, 82, 222, 0.025)",
         stroke: "rgba(175, 82, 222, 0.82)",
         lineWidth: 1.25,
