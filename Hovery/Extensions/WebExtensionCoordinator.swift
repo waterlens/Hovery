@@ -198,6 +198,11 @@ final class WebExtensionCoordinator: ObservableObject {
         panelController.containsPanelPoint(point)
     }
 
+    func dismissUnpinnedResultsIfNeeded() {
+        guard panelController.shouldDismissForCurrentPointer else { return }
+        hide()
+    }
+
     func isPointerMovingTowardResults(from origin: CGPoint, to point: CGPoint) -> Bool {
         panelController.isMovingTowardPanel(from: origin, to: point)
     }
@@ -602,6 +607,7 @@ private final class WebExtensionResultsPanelController: NSWindowController {
         resultsViewController.selectedIdentifier
     }
     private(set) var isPinned = false
+    private(set) var dismissOnPointerExit = false
     var isVisible: Bool { window?.isVisible == true }
 
     private let resultsViewController = WebExtensionResultsViewController()
@@ -612,6 +618,14 @@ private final class WebExtensionResultsPanelController: NSWindowController {
     private var avoidanceRect: CGRect?
     private var anchorDisplayID: CGDirectDisplayID?
     private var verticalPlacement: ResultsPanelVerticalPlacement?
+
+    var shouldDismissForCurrentPointer: Bool {
+        guard dismissOnPointerExit,
+              window?.isVisible == true,
+              let frame = window?.frame else { return false }
+        let padding = CGFloat(presentation.interactionCorridorPadding)
+        return !frame.insetBy(dx: -padding, dy: -padding).contains(NSEvent.mouseLocation)
+    }
 
     init() {
         let panel = InteractiveResultsPanel(
@@ -639,6 +653,7 @@ private final class WebExtensionResultsPanelController: NSWindowController {
         }
         resultsViewController.pinStateDidChange = { [weak self] isPinned in
             self?.isPinned = isPinned
+            self?.dismissOnPointerExit = !isPinned
             self?.pinStateDidChange?(isPinned)
         }
     }
@@ -669,6 +684,7 @@ private final class WebExtensionResultsPanelController: NSWindowController {
         self.anchorRect = anchorRect
         self.avoidanceRect = avoidanceRect
         anchorDisplayID = displayID
+        dismissOnPointerExit = false
         verticalPlacement = nil
         contentHeights = [:]
         currentHeight = CGFloat(configuration.initialHeight)
@@ -691,6 +707,7 @@ private final class WebExtensionResultsPanelController: NSWindowController {
 
     func hide() {
         isPinned = false
+        dismissOnPointerExit = false
         resultsViewController.setPinned(false)
         window?.orderOut(nil)
         anchorRect = nil
@@ -701,17 +718,23 @@ private final class WebExtensionResultsPanelController: NSWindowController {
     }
 
     func containsPanelPoint(_ point: CGPoint) -> Bool {
-        guard window?.isVisible == true, let frame = window?.frame else { return false }
+        guard window?.isVisible == true,
+              let frame = window?.frame,
+              let displayID = anchorDisplayID,
+              let point = appKitPoint(point, displayID: displayID) else { return false }
         let padding = CGFloat(presentation.interactionCorridorPadding)
         return frame.insetBy(dx: -padding, dy: -padding).contains(point)
     }
 
     func containsTransitionPoint(_ point: CGPoint) -> Bool {
-        guard window?.isVisible == true, let frame = window?.frame else { return false }
+        guard window?.isVisible == true,
+              let frame = window?.frame,
+              let displayID = anchorDisplayID,
+              let point = appKitPoint(point, displayID: displayID) else { return false }
         let padding = CGFloat(presentation.interactionCorridorPadding)
         guard !frame.insetBy(dx: -padding, dy: -padding).contains(point) else { return false }
         let convertedAnchor = anchorRect.flatMap { anchorRect in
-            anchorDisplayID.flatMap { appKitRect(anchorRect, displayID: $0) }
+            appKitRect(anchorRect, displayID: displayID)
         }
         return ResultsInteractionRegion.contains(
             point,
@@ -722,10 +745,14 @@ private final class WebExtensionResultsPanelController: NSWindowController {
     }
 
     func isMovingTowardPanel(from origin: CGPoint, to point: CGPoint) -> Bool {
-        guard window?.isVisible == true, let frame = window?.frame else { return false }
+        guard window?.isVisible == true,
+              let frame = window?.frame,
+              let displayID = anchorDisplayID,
+              let origin = appKitPoint(origin, displayID: displayID),
+              let point = appKitPoint(point, displayID: displayID) else { return false }
         let padding = CGFloat(presentation.interactionCorridorPadding)
         let convertedAnchor = anchorRect.flatMap { anchorRect in
-            anchorDisplayID.flatMap { appKitRect(anchorRect, displayID: $0) }
+            appKitRect(anchorRect, displayID: displayID)
         }
         return ResultsInteractionRegion.isMovingTowardPanel(
             from: origin,
@@ -816,6 +843,15 @@ private final class WebExtensionResultsPanelController: NSWindowController {
             y: screen.frame.minY + displayBounds.maxY - rect.maxY,
             width: rect.width,
             height: rect.height
+        )
+    }
+
+    private func appKitPoint(_ point: CGPoint, displayID: CGDirectDisplayID) -> CGPoint? {
+        let displayBounds = CGDisplayBounds(displayID)
+        guard displayBounds.contains(point), let screen = screen(for: displayID) else { return nil }
+        return CGPoint(
+            x: screen.frame.minX + point.x - displayBounds.minX,
+            y: screen.frame.minY + displayBounds.maxY - point.y
         )
     }
 }

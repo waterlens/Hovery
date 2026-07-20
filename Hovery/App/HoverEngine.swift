@@ -194,6 +194,7 @@ final class HoverEngine: ObservableObject {
     }
 
     private func tick() {
+        webExtensions.dismissUnpinnedResultsIfNeeded()
         let modifiersSatisfied = requiredModifiersArePressed()
         guard modifiersSatisfied else {
             if modifierKeysWereSatisfied || anchorPoint != nil || scanTask != nil {
