@@ -39,7 +39,7 @@ targets:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CURRENT_PROJECT_VERSION: 1
-        MARKETING_VERSION: 0.2.1
+        MARKETING_VERSION: 0.2.2
         PRODUCT_BUNDLE_IDENTIFIER: app.hovery.Hovery
         PRODUCT_NAME: Hovery
         INFOPLIST_KEY_CFBundleDisplayName: Hovery

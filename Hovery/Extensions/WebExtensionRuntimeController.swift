@@ -7,13 +7,14 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
     private enum Runtime {
         static let namespace = "__hoveryESMRuntime"
         static let contentSizeHandler = "hoveryInternalContentSize"
+        static let contentSizeReporter = "hoveryInternalReportContentSize"
         static let capabilityHandler = "hoveryCapability"
         static let overlayHandler = "hoverySelectionOverlay"
         static let rootSelector = "[data-hovery-root]"
     }
 
     let descriptor: WebExtensionDescriptor
-    var contentHeightDidChange: ((CGFloat) -> Void)?
+    var contentHeightDidChange: ((_ requestID: String, _ height: CGFloat) -> Void)?
     var failureDidOccur: ((String) -> Void)?
     var selectionOverlayDidChange: ((_ requestID: String, _ items: [WebExtensionOverlayItem]?) -> Void)?
 
@@ -70,7 +71,12 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
             name: Runtime.overlayHandler
         )
         userContentController.addUserScript(WKUserScript(
-            source: Self.contentSizeObserverScript(handlerName: Runtime.contentSizeHandler),
+            source: Self.contentSizeObserverScript(
+                handlerName: Runtime.contentSizeHandler,
+                namespace: Runtime.namespace,
+                rootSelector: Runtime.rootSelector,
+                reporterName: Runtime.contentSizeReporter
+            ),
             injectionTime: .atDocumentEnd,
             forMainFrameOnly: true
         ))
@@ -116,6 +122,7 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                     const runtime = globalThis[namespace];
                     if (runtime) {
                         runtime.generation += 1;
+                        runtime.requestID = null;
                         runtime.controller?.abort();
                         runtime.controller = null;
                     }
@@ -193,9 +200,9 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
         return .cancel
     }
 
-    fileprivate func receiveContentHeight(_ height: CGFloat) {
+    fileprivate func receiveContentHeight(_ height: CGFloat, requestID: String) {
         guard height.isFinite, height > 0 else { return }
-        contentHeightDidChange?(height)
+        contentHeightDidChange?(requestID, height)
     }
 
     private func mountModule() async {
@@ -239,7 +246,8 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                     capabilities: createCapabilities(),
                     createCapabilities,
                     controller: null,
-                    generation: 0
+                    generation: 0,
+                    requestID: null
                 };
                 globalThis[namespace] = runtime;
                 if (typeof extensionModule.mount === "function") {
@@ -288,6 +296,7 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                     }
                     runtime.generation += 1;
                     const generation = runtime.generation;
+                    runtime.requestID = request.id;
                     runtime.controller?.abort();
                     const controller = new AbortController();
                     runtime.controller = controller;
@@ -375,7 +384,9 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                         overlay
                     });
                     try {
-                        await runtime.module.present(value);
+                        const presentation = runtime.module.present(value);
+                        globalThis[sizeReporter]?.();
+                        await presentation;
                     } catch (error) {
                         if (error?.name !== "AbortError") {
                             throw error;
@@ -389,6 +400,7 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                     arguments: [
                         "namespace": Runtime.namespace,
                         "request": request,
+                        "sizeReporter": Runtime.contentSizeReporter,
                         "overlayHandler": Runtime.overlayHandler,
                         "extensionInfo": [
                             "selectionOverlay": descriptor.allowsSelectionOverlay
@@ -493,27 +505,59 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
         return url
     }
 
-    private static func contentSizeObserverScript(handlerName: String) -> String {
+    private static func contentSizeObserverScript(
+        handlerName: String,
+        namespace: String,
+        rootSelector: String,
+        reporterName: String
+    ) -> String {
         """
         (() => {
             var scheduled = false;
             const report = () => {
                 if (scheduled) return;
+                const requestID = globalThis.\(namespace)?.requestID;
+                if (typeof requestID !== "string") return;
                 scheduled = true;
                 requestAnimationFrame(() => {
                     scheduled = false;
+                    if (globalThis.\(namespace)?.requestID !== requestID) {
+                        report();
+                        return;
+                    }
                     const body = document.body;
-                    const root = document.documentElement;
-                    const height = Math.max(
-                        body?.scrollHeight ?? 0,
-                        body?.offsetHeight ?? 0,
-                        root?.scrollHeight ?? 0,
-                        root?.offsetHeight ?? 0
+                    const root = document.querySelector("\(rootSelector)")
+                        ?? document.getElementById("hovery-root")
+                        ?? body;
+                    if (!body || !root) return;
+                    const bodyRect = body.getBoundingClientRect();
+                    const rootRect = root.getBoundingClientRect();
+                    const bodyStyle = getComputedStyle(body);
+                    const rootStyle = getComputedStyle(root);
+                    const pixels = value => Number.parseFloat(value) || 0;
+                    const rootTop = root === body ? 0 : rootRect.top - bodyRect.top;
+                    const rootHeight = root === body
+                        ? Math.max(...Array.from(body.children, child =>
+                            child.getBoundingClientRect().bottom - bodyRect.top
+                        ), pixels(bodyStyle.paddingTop))
+                        : rootTop + Math.max(rootRect.height, root.scrollHeight)
+                            + pixels(rootStyle.marginBottom);
+                    const height = Math.ceil(
+                        rootHeight
+                        + pixels(bodyStyle.paddingBottom)
+                        + pixels(bodyStyle.borderBottomWidth)
                     );
-                    window.webkit.messageHandlers.\(handlerName).postMessage({ height });
+                    window.webkit.messageHandlers.\(handlerName).postMessage({
+                        requestID,
+                        height
+                    });
                 });
             };
-            new ResizeObserver(report).observe(document.documentElement);
+            const root = document.querySelector("\(rootSelector)")
+                ?? document.getElementById("hovery-root")
+                ?? document.body;
+            if (root) new ResizeObserver(report).observe(root);
+            globalThis.\(reporterName) = report;
             report();
         })();
         """
@@ -560,9 +604,13 @@ private final class WebExtensionContentSizeHandler: NSObject, WKScriptMessageHan
         didReceive message: WKScriptMessage
     ) {
         guard let body = message.body as? [String: Any],
+              let requestID = body["requestID"] as? String,
               let number = body["height"] as? NSNumber else { return }
         Task { @MainActor [weak self] in
-            self?.owner?.receiveContentHeight(CGFloat(truncating: number))
+            self?.owner?.receiveContentHeight(
+                CGFloat(truncating: number),
+                requestID: requestID
+            )
         }
     }
 }

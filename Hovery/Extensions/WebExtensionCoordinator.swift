@@ -290,8 +290,9 @@ final class WebExtensionCoordinator: ObservableObject {
                     descriptor: descriptor,
                     nativeConfiguration: webExtensions
                 )
-                runtime.contentHeightDidChange = { [weak self] height in
-                    self?.panelController.updateContentHeight(height, for: descriptor.identifier)
+                runtime.contentHeightDidChange = { [weak self] requestID, height in
+                    guard let self, requestID == currentRequestID else { return }
+                    panelController.updateContentHeight(height, for: descriptor.identifier)
                 }
                 runtime.failureDidOccur = { [weak self] message in
                     self?.logger.error(
