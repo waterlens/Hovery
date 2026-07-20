@@ -99,20 +99,35 @@ final class WebExtensionNativeHost: WebExtensionNativeInvoking {
             throw WebExtensionNativeHostError.requestTooLarge
         }
 
-        return try await withCheckedThrowingContinuation { continuation in
-            let timeoutTask = Task { @MainActor [weak self] in
-                guard let self else { return }
-                try? await Task.sleep(for: requestTimeout)
-                failRequest(requestID, with: WebExtensionNativeHostError.timedOut)
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                guard !Task.isCancelled else {
+                    continuation.resume(throwing: WebExtensionNativeHostError.cancelled)
+                    return
+                }
+                let timeoutTask = Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    try? await Task.sleep(for: requestTimeout)
+                    guard !Task.isCancelled else { return }
+                    failRequest(requestID, with: WebExtensionNativeHostError.timedOut)
+                }
+                pendingRequests[requestID] = PendingRequest(
+                    continuation: continuation,
+                    timeoutTask: timeoutTask
+                )
+                guard let standardInput else {
+                    failRequest(requestID, with: WebExtensionNativeHostError.terminated)
+                    return
+                }
+                do {
+                    try standardInput.write(contentsOf: data)
+                } catch {
+                    failRequest(requestID, with: WebExtensionNativeHostError.terminated)
+                }
             }
-            pendingRequests[requestID] = PendingRequest(
-                continuation: continuation,
-                timeoutTask: timeoutTask
-            )
-            do {
-                try standardInput?.write(contentsOf: data)
-            } catch {
-                failRequest(requestID, with: WebExtensionNativeHostError.terminated)
+        } onCancel: { [weak self] in
+            Task { @MainActor in
+                self?.failRequest(requestID, with: WebExtensionNativeHostError.cancelled)
             }
         }
     }
@@ -198,15 +213,20 @@ final class WebExtensionNativeHost: WebExtensionNativeInvoking {
             return
         }
         responseBuffer.append(data)
+        while let newline = responseBuffer.firstIndex(of: 0x0A) {
+            let line = responseBuffer[..<newline]
+            responseBuffer.removeSubrange(...newline)
+            guard line.count <= maximumMessageBytes else {
+                failAll(with: WebExtensionNativeHostError.responseTooLarge)
+                stop()
+                return
+            }
+            receiveResponse(Data(line))
+        }
         guard responseBuffer.count <= maximumMessageBytes else {
             failAll(with: WebExtensionNativeHostError.responseTooLarge)
             stop()
             return
-        }
-        while let newline = responseBuffer.firstIndex(of: 0x0A) {
-            let line = responseBuffer[..<newline]
-            responseBuffer.removeSubrange(...newline)
-            receiveResponse(Data(line))
         }
     }
 

@@ -111,15 +111,15 @@ actor ScreenCaptureService {
             CGFloat(configuration.maximumPixelHeight) / max(cropRect.height, 1)
         )
 
-        let configuration = SCStreamConfiguration()
-        configuration.sourceRect = localRect
-        configuration.width = max(1, Int((cropRect.width * outputScale).rounded()))
-        configuration.height = max(1, Int((cropRect.height * outputScale).rounded()))
-        configuration.showsCursor = false
+        let streamConfiguration = SCStreamConfiguration()
+        streamConfiguration.sourceRect = localRect
+        streamConfiguration.width = max(1, Int((cropRect.width * outputScale).rounded()))
+        streamConfiguration.height = max(1, Int((cropRect.height * outputScale).rounded()))
+        streamConfiguration.showsCursor = false
 
         let image = try await SCScreenshotManager.captureImage(
             contentFilter: filter,
-            configuration: configuration
+            configuration: streamConfiguration
         )
 
         return CapturedFrame(

@@ -16,11 +16,13 @@ struct SettingsView: View {
 
     @ObservedObject var settings: HoverySettings
     @State private var draft: HoveryConfiguration
+    @State private var draftBase: HoveryConfiguration
     @FocusState private var isEditingNumber: Bool
 
     init(settings: HoverySettings) {
         self.settings = settings
         _draft = State(initialValue: settings.configuration)
+        _draftBase = State(initialValue: settings.configuration)
     }
 
     var body: some View {
@@ -117,9 +119,9 @@ struct SettingsView: View {
         }
         .frame(width: Layout.windowWidth, height: Layout.windowHeight)
         .onReceive(settings.$configuration.dropFirst()) { configuration in
-            if !isEditingNumber {
-                draft = configuration
-            }
+            guard draft == draftBase else { return }
+            draft = configuration
+            draftBase = configuration
         }
     }
 
@@ -131,17 +133,22 @@ struct SettingsView: View {
             Button("Reload") {
                 settings.reload()
                 draft = settings.configuration
+                draftBase = settings.configuration
             }
             Spacer()
             Button("Restore Defaults") {
                 settings.reset()
                 draft = settings.configuration
+                draftBase = settings.configuration
             }
             Button("Apply") {
                 settings.replace(with: draft)
                 draft = settings.configuration
+                draftBase = settings.configuration
             }
-            .disabled(draft == settings.configuration)
+            .disabled(
+                draft == draftBase || settings.configuration != draftBase
+            )
         }
         .padding()
     }
@@ -256,9 +263,7 @@ private final class ModifierRecorderControl: NSTextField {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    required init?(coder: NSCoder) { nil }
 
     func setModifiers(_ modifiers: [RecognitionModifier]) {
         let ordered = RecognitionModifier.allCases.filter(Set(modifiers).contains)

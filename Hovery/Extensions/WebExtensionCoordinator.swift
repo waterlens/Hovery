@@ -643,9 +643,8 @@ private final class WebExtensionResultsPanelController: NSWindowController {
         }
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     func configure(
         runtimes: [WebExtensionRuntimeController],
@@ -1045,9 +1044,8 @@ private final class ProviderTabButton: NSButton {
         updateAppearance()
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     override var intrinsicContentSize: NSSize {
         let titleSize = attributedTitle.size()
@@ -1105,9 +1103,8 @@ private final class ProviderContentView: NSView {
         updateCornerMask()
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()

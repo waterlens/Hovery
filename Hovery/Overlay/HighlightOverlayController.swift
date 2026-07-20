@@ -65,7 +65,7 @@ final class HighlightOverlayController {
         overlayView.extensionSelectionStyles = [:]
         backdropView?.selections = []
         overlayView.selections = selections.map {
-            convert($0, displayID: displayID, screen: screen)
+            convert($0, displayID: displayID)
         }
         overlayView.pointerLocation = convert(pointer, displayID: displayID)
         panel.level = .screenSaver
@@ -89,7 +89,7 @@ final class HighlightOverlayController {
         guard let panel, let overlayView, let backdropView else { return }
         let convertedSelections = selections.map {
             ExtensionOverlaySelection(
-                selection: convert($0.selection, displayID: displayID, screen: screen),
+                selection: convert($0.selection, displayID: displayID),
                 style: $0.style
             )
         }
@@ -164,8 +164,7 @@ final class HighlightOverlayController {
 
     private func convert(
         _ selection: SemanticSelection,
-        displayID: CGDirectDisplayID,
-        screen: NSScreen
+        displayID: CGDirectDisplayID
     ) -> SemanticSelection {
         let displayBounds = CGDisplayBounds(displayID)
         let converted = selection.regions.map { region in

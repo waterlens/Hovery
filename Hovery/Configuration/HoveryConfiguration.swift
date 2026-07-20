@@ -3,6 +3,12 @@ import Foundation
 import OSLog
 import TOMLKit
 
+private extension KeyedDecodingContainer {
+    func decode<Value: Decodable>(_ value: inout Value, forKey key: Key) throws {
+        value = try decodeIfPresent(Value.self, forKey: key) ?? value
+    }
+}
+
 enum RecognitionModifier: String, Codable, CaseIterable, Sendable {
     case command
     case option
@@ -190,6 +196,23 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
         var useLanguageCorrection = true
         var maximumCandidateCount = 1
         var fallbackConfidence = 0.5
+
+        private enum CodingKeys: String, CodingKey {
+            case minimumTextHeightFraction, automaticallyDetectLanguage, useLanguageCorrection
+            case maximumCandidateCount, fallbackConfidence
+        }
+
+        init() {}
+
+        init(from decoder: Decoder) throws {
+            self.init()
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            try container.decode(&minimumTextHeightFraction, forKey: .minimumTextHeightFraction)
+            try container.decode(&automaticallyDetectLanguage, forKey: .automaticallyDetectLanguage)
+            try container.decode(&useLanguageCorrection, forKey: .useLanguageCorrection)
+            try container.decode(&maximumCandidateCount, forKey: .maximumCandidateCount)
+            try container.decode(&fallbackConfidence, forKey: .fallbackConfidence)
+        }
     }
 
     struct RegionSelection: Codable, Equatable, Sendable {
@@ -213,6 +236,40 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
         var blockAlignmentTolerance = 2.5
         var blockMinimumHorizontalOverlap = 0.25
         var sameColumnMinimumOverlap = 0.45
+
+        private enum CodingKeys: String, CodingKey {
+            case fallbackLineHeight, minimumLineHeight, minimumGeometryDimension
+            case magneticHorizontalScale, magneticVerticalScale, minimumMagneticPadding
+            case maximumHorizontalPadding, maximumVerticalPadding
+            case directHitScore, nearbyHitScore, confidenceWeight
+            case distancePenalty, verticalCenterPenalty
+            case blockMaximumVerticalGap, blockAlignmentTolerance
+            case blockMinimumHorizontalOverlap, sameColumnMinimumOverlap
+        }
+
+        init() {}
+
+        init(from decoder: Decoder) throws {
+            self.init()
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            try container.decode(&fallbackLineHeight, forKey: .fallbackLineHeight)
+            try container.decode(&minimumLineHeight, forKey: .minimumLineHeight)
+            try container.decode(&minimumGeometryDimension, forKey: .minimumGeometryDimension)
+            try container.decode(&magneticHorizontalScale, forKey: .magneticHorizontalScale)
+            try container.decode(&magneticVerticalScale, forKey: .magneticVerticalScale)
+            try container.decode(&minimumMagneticPadding, forKey: .minimumMagneticPadding)
+            try container.decode(&maximumHorizontalPadding, forKey: .maximumHorizontalPadding)
+            try container.decode(&maximumVerticalPadding, forKey: .maximumVerticalPadding)
+            try container.decode(&directHitScore, forKey: .directHitScore)
+            try container.decode(&nearbyHitScore, forKey: .nearbyHitScore)
+            try container.decode(&confidenceWeight, forKey: .confidenceWeight)
+            try container.decode(&distancePenalty, forKey: .distancePenalty)
+            try container.decode(&verticalCenterPenalty, forKey: .verticalCenterPenalty)
+            try container.decode(&blockMaximumVerticalGap, forKey: .blockMaximumVerticalGap)
+            try container.decode(&blockAlignmentTolerance, forKey: .blockAlignmentTolerance)
+            try container.decode(&blockMinimumHorizontalOverlap, forKey: .blockMinimumHorizontalOverlap)
+            try container.decode(&sameColumnMinimumOverlap, forKey: .sameColumnMinimumOverlap)
+        }
     }
 
     struct Overlay: Codable, Equatable, Sendable {

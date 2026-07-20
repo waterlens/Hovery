@@ -204,13 +204,9 @@ struct MenuContentView: View {
         let marketingVersion = Bundle.main.object(
             forInfoDictionaryKey: "CFBundleShortVersionString"
         ) as? String ?? ""
-        let credits = NSAttributedString(
-            string: "Created by waterlens\nLicensed under the Apache License 2.0"
-        )
         NSApp.orderFrontStandardAboutPanel(options: [
             .applicationVersion: marketingVersion,
-            .version: "",
-            .credits: credits
+            .version: ""
         ])
     }
 }

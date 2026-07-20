@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f5fbfd"/>
+      <stop offset="1" stop-color="#e7f4f8"/>
+    </linearGradient>
+    <linearGradient id="arrow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1ccf9a"/>
+      <stop offset="1" stop-color="#16a9c7"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="160%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+  </defs>
+
+  <rect width="640" height="400" fill="url(#background)"/>
+  <circle cx="60" cy="36" r="120" fill="#ffffff" opacity="0.38"/>
+  <circle cx="600" cy="380" r="155" fill="#bceaf0" opacity="0.25"/>
+
+  <text x="320" y="56" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, sans-serif"
+        font-size="24" font-weight="650" fill="#15343d">Install Hovery</text>
+  <text x="320" y="84" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, sans-serif"
+        font-size="14" fill="#52727a">Drag Hovery into Applications</text>
+
+  <path d="M257 188 H381" stroke="#0e6372" stroke-width="12" opacity="0.12"
+        stroke-linecap="round" filter="url(#shadow)"/>
+  <path d="M257 180 H374" stroke="url(#arrow)" stroke-width="8"
+        stroke-linecap="round"/>
+  <path d="M358 162 L382 180 L358 198" fill="none" stroke="#16a9c7"
+        stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

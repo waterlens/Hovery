@@ -53,9 +53,8 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
         overlayHandler.owner = self
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     override func loadView() {
         let userContentController = WKUserContentController()
@@ -485,7 +484,10 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
         components.scheme = WebExtensionResourceHandler.scheme
         components.host = descriptor.identifier
         components.path = "/" + path
-        return components.url!
+        guard let url = components.url else {
+            preconditionFailure("Invalid extension resource URL")
+        }
+        return url
     }
 
     private static func contentSizeObserverScript(handlerName: String) -> String {

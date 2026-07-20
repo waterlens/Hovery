@@ -6,7 +6,7 @@ The project version is the `MARKETING_VERSION` value in `project.yml`. The app's
 
 Every release build produces:
 
-- `Hovery-<version>.dmg`, containing the universal Hovery app, an Applications link, the Apache license, and the NOTICE file.
+- `Hovery-<version>.dmg`, presenting the universal Hovery app in a standard drag-to-Applications installer window. The Apache license and NOTICE remain bundled inside the app.
 - `AppleDictionary-<version>.hoveryextension.zip`, containing the universal native helper and web extension resources.
 - `SHA256SUMS` and `RELEASE-INFO.txt`.
 

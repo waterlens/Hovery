@@ -76,6 +76,10 @@ DERIVED_ROOT="$PROJECT_ROOT/.build/release-derived"
 ARTIFACT_DIRECTORY="$ARTIFACT_ROOT/artifacts"
 STAGING_DIRECTORY="$ARTIFACT_ROOT/staging"
 DMG_SOURCE_DIRECTORY="$STAGING_DIRECTORY/dmg"
+DMG_BACKGROUND_SOURCE="$PROJECT_ROOT/Scripts/Assets/DMGBackground.tiff"
+DMG_VOLUME_NAME="Hovery $VERSION"
+DMG_READ_WRITE_PATH="$STAGING_DIRECTORY/Hovery-read-write.dmg"
+DMG_LAYOUT_MOUNT_DIRECTORY="$STAGING_DIRECTORY/dmg-mount"
 EXTENSION_SOURCE_DIRECTORY="$PROJECT_ROOT/Examples/AppleDictionary/Extension/AppleDictionary.hoveryextension"
 APP_DERIVED_DATA="$DERIVED_ROOT/Hovery"
 DICTIONARY_DERIVED_DATA="$DERIVED_ROOT/AppleDictionary"
@@ -96,7 +100,11 @@ case "$ARTIFACT_ROOT" in
         ;;
 esac
 /bin/rm -rf "$ARTIFACT_ROOT" "$DERIVED_ROOT"
-/bin/mkdir -p "$ARTIFACT_DIRECTORY" "$STAGING_DIRECTORY" "$DMG_SOURCE_DIRECTORY"
+/bin/mkdir -p \
+    "$ARTIFACT_DIRECTORY" \
+    "$STAGING_DIRECTORY" \
+    "$DMG_SOURCE_DIRECTORY/.background" \
+    "$DMG_LAYOUT_MOUNT_DIRECTORY"
 
 xcodegen generate --spec "$PROJECT_ROOT/project.yml"
 xcodegen generate --spec "$PROJECT_ROOT/Examples/AppleDictionary/project.yml"
@@ -181,14 +189,76 @@ fi
 
 /usr/bin/ditto "$STAGED_APP" "$DMG_SOURCE_DIRECTORY/Hovery.app"
 /bin/ln -s /Applications "$DMG_SOURCE_DIRECTORY/Applications"
-/usr/bin/ditto "$PROJECT_ROOT/LICENSE" "$DMG_SOURCE_DIRECTORY/LICENSE"
-/usr/bin/ditto "$PROJECT_ROOT/NOTICE" "$DMG_SOURCE_DIRECTORY/NOTICE"
+/usr/bin/ditto "$DMG_BACKGROUND_SOURCE" "$DMG_SOURCE_DIRECTORY/.background/DMGBackground.tiff"
 /usr/bin/hdiutil create \
-    -volname "Hovery $VERSION" \
+    -volname "$DMG_VOLUME_NAME" \
     -srcfolder "$DMG_SOURCE_DIRECTORY" \
-    -format UDZO \
+    -format UDRW \
     -ov \
-    "$DMG_PATH"
+    "$DMG_READ_WRITE_PATH"
+
+DMG_LAYOUT_ATTACHED=0
+cleanup_dmg_layout() {
+    if [ "$DMG_LAYOUT_ATTACHED" -eq 1 ]; then
+        /usr/bin/hdiutil detach "$DMG_LAYOUT_MOUNT_DIRECTORY" -quiet || true
+    fi
+}
+trap cleanup_dmg_layout EXIT HUP INT TERM
+
+/usr/bin/hdiutil attach \
+    "$DMG_READ_WRITE_PATH" \
+    -readwrite \
+    -noverify \
+    -noautoopen \
+    -mountpoint "$DMG_LAYOUT_MOUNT_DIRECTORY" \
+    -quiet
+DMG_LAYOUT_ATTACHED=1
+
+/usr/bin/osascript - "$DMG_LAYOUT_MOUNT_DIRECTORY" <<'APPLESCRIPT'
+on run arguments
+    set mountPath to item 1 of arguments
+
+    tell application "Finder"
+        set mountedFolder to POSIX file mountPath as alias
+        set installerDisk to disk of mountedFolder
+
+        tell installerDisk
+            open
+            set installerWindow to container window
+            set current view of installerWindow to icon view
+            set toolbar visible of installerWindow to false
+            set statusbar visible of installerWindow to false
+            set pathbar visible of installerWindow to false
+            set sidebar width of installerWindow to 0
+            set bounds of installerWindow to {120, 120, 760, 520}
+
+            set viewOptions to icon view options of installerWindow
+            set arrangement of viewOptions to not arranged
+            set icon size of viewOptions to 112
+            set text size of viewOptions to 13
+            set background picture of viewOptions to file ".background:DMGBackground.tiff"
+
+            set position of item "Hovery.app" of installerWindow to {170, 180}
+            set position of item "Applications" of installerWindow to {470, 180}
+            update without registering applications
+            delay 2
+            close installerWindow
+        end tell
+    end tell
+end run
+APPLESCRIPT
+
+/bin/sync
+/usr/bin/hdiutil detach "$DMG_LAYOUT_MOUNT_DIRECTORY" -quiet
+DMG_LAYOUT_ATTACHED=0
+trap - EXIT HUP INT TERM
+
+/usr/bin/hdiutil convert \
+    "$DMG_READ_WRITE_PATH" \
+    -format UDZO \
+    -imagekey zlib-level=9 \
+    -ov \
+    -o "$DMG_PATH"
 
 if [ "$SIGNING_MODE" = "developer-id" ]; then
     /usr/bin/codesign --force --sign "$HOVERY_CODE_SIGN_IDENTITY" --timestamp "$DMG_PATH"
@@ -253,6 +323,11 @@ DMG_ATTACHED=1
 MOUNTED_APP="$MOUNT_DIRECTORY/Hovery.app"
 if [ ! -d "$MOUNTED_APP" ] || [ ! -L "$MOUNT_DIRECTORY/Applications" ]; then
     printf '%s\n' "The DMG does not contain Hovery.app and its Applications link." >&2
+    exit 1
+fi
+VISIBLE_DMG_ITEMS=$(/bin/ls -1 "$MOUNT_DIRECTORY" | /usr/bin/wc -l | /usr/bin/tr -d ' ')
+if [ "$VISIBLE_DMG_ITEMS" -ne 2 ]; then
+    printf '%s\n' "The DMG root must contain only Hovery.app and its Applications link." >&2
     exit 1
 fi
 APP_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$MOUNTED_APP/Contents/Info.plist")

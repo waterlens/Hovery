@@ -147,9 +147,8 @@ final class ExtensionsWindowController: NSWindowController {
         ))
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { nil }
 
     func present() {
         NSApp.activate(ignoringOtherApps: true)
