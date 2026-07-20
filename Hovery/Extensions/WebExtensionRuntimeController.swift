@@ -30,7 +30,7 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
 
     init(
         descriptor: WebExtensionDescriptor,
-        nativeConfiguration: HoveryConfiguration.WebExtensions = .init(),
+        nativeConfiguration: WebExtensionConfiguration = .init(),
         nativeInvoker: (any WebExtensionNativeInvoking)? = nil
     ) {
         self.descriptor = descriptor

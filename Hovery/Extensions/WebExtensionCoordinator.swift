@@ -43,11 +43,14 @@ final class WebExtensionCoordinator: ObservableObject {
                 self?.clearPinnedSelectionOverlay()
             }
         }
-        configurationCancellable = settings.$configuration
-            .sink { [weak self] configuration in
+        configurationCancellable = Publishers.CombineLatest(
+            settings.$extensionConfiguration,
+            settings.$configuration.map(\.resultsPresentation).removeDuplicates()
+        )
+            .sink { [weak self] webExtensions, presentation in
                 self?.reload(
-                    webExtensions: configuration.webExtensions,
-                    presentation: configuration.resultsPresentation
+                    webExtensions: webExtensions,
+                    presentation: presentation
                 )
             }
     }
@@ -62,7 +65,7 @@ final class WebExtensionCoordinator: ObservableObject {
 
     func reloadExtensions() {
         reload(
-            webExtensions: settings.configuration.webExtensions,
+            webExtensions: settings.extensionConfiguration,
             presentation: settings.configuration.resultsPresentation
         )
     }
@@ -74,20 +77,20 @@ final class WebExtensionCoordinator: ObservableObject {
            !status.isNativeCodeTrusted {
             return
         }
-        settings.update { configuration in
-            configuration.webExtensions.disabled.removeAll { $0 == identifier }
+        settings.updateExtensions { configuration in
+            configuration.disabled.removeAll { $0 == identifier }
             if !enabled {
-                configuration.webExtensions.disabled.append(identifier)
+                configuration.disabled.append(identifier)
             }
         }
     }
 
     func trustAndEnableNativeExtension(identifier: String) {
-        settings.update { configuration in
-            if !configuration.webExtensions.trustedNative.contains(identifier) {
-                configuration.webExtensions.trustedNative.append(identifier)
+        settings.updateExtensions { configuration in
+            if !configuration.trustedNative.contains(identifier) {
+                configuration.trustedNative.append(identifier)
             }
-            configuration.webExtensions.disabled.removeAll { $0 == identifier }
+            configuration.disabled.removeAll { $0 == identifier }
         }
     }
 
@@ -200,7 +203,7 @@ final class WebExtensionCoordinator: ObservableObject {
     }
 
     private func reload(
-        webExtensions: HoveryConfiguration.WebExtensions,
+        webExtensions: WebExtensionConfiguration,
         presentation: HoveryConfiguration.ResultsPresentation
     ) {
         runtimes.forEach { $0.unmount() }

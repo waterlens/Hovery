@@ -36,7 +36,7 @@ final class WebExtensionCapabilityBroker {
 
     init(
         descriptor: WebExtensionDescriptor,
-        configuration: HoveryConfiguration.WebExtensions,
+        configuration: WebExtensionConfiguration,
         nativeInvoker: (any WebExtensionNativeInvoking)? = nil
     ) {
         self.descriptor = descriptor

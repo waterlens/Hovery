@@ -24,7 +24,7 @@ struct ExtensionsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Group {
+            ZStack {
                 if manager.extensions.isEmpty {
                     ContentUnavailableView(
                         "No Extensions",
@@ -37,7 +37,12 @@ struct ExtensionsView: View {
                     }
                 }
             }
-            .frame(minHeight: Layout.minimumListHeight)
+            .frame(
+                maxWidth: .infinity,
+                minHeight: Layout.minimumListHeight,
+                maxHeight: .infinity
+            )
+            .layoutPriority(1)
 
             HStack {
                 Button("Open Extensions Folder") {

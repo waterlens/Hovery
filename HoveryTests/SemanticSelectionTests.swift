@@ -2,6 +2,7 @@ import CoreGraphics
 import CoreText
 import AppKit
 import ApplicationServices
+import Combine
 import ScreenCaptureKit
 import WebKit
 import XCTest
@@ -9,6 +10,7 @@ import XCTest
 
 final class SemanticSelectionTests: XCTestCase {
     private enum TestTiming {
+        static let configurationObservationTimeout: TimeInterval = 0.25
         static let webExtensionStartupTimeout: TimeInterval = 10
     }
 
@@ -268,8 +270,10 @@ final class SemanticSelectionTests: XCTestCase {
         configured.overlay.labelFontSize = 13
         configured.extensionOverlay.fillOpacity = 0.2
         configured.interaction.requiredModifiers = [.command, .shift]
-        configured.webExtensions.disabled = ["org.example.disabled"]
+        var extensionConfiguration = WebExtensionConfiguration()
+        extensionConfiguration.disabled = ["org.example.disabled"]
         let text = try HoverySettings.serialized(configured)
+        let extensionText = HoverySettings.serializedExtensions(extensionConfiguration)
         XCTAssertTrue(text.contains("accessibilityMinimumWidth = 320.0"))
         XCTAssertTrue(text.contains("[overlay]"))
         XCTAssertTrue(text.contains("debugEnabled = true"))
@@ -278,9 +282,9 @@ final class SemanticSelectionTests: XCTestCase {
         XCTAssertTrue(text.contains("fillOpacity = 0.2"))
         XCTAssertTrue(text.contains("materialOpacity = 0.18"))
         XCTAssertTrue(text.contains("requiredModifiers = [\"command\", \"shift\"]"))
-        XCTAssertTrue(text.contains("[webExtensions]"))
-        XCTAssertTrue(text.contains("directory = \"Extensions\""))
-        XCTAssertTrue(text.contains("disabled = [\"org.example.disabled\"]"))
+        XCTAssertFalse(text.contains("[webExtensions]"))
+        XCTAssertTrue(extensionText.contains("directory = \"Extensions\""))
+        XCTAssertTrue(extensionText.contains("disabled = [\"org.example.disabled\"]"))
         XCTAssertTrue(text.contains("[resultsPresentation]"))
         XCTAssertTrue(text.contains("tabBarHorizontalInset = 8.0"))
         XCTAssertTrue(text.contains("tabBarVerticalInset = 5.0"))
@@ -290,6 +294,11 @@ final class SemanticSelectionTests: XCTestCase {
         XCTAssertTrue(text.contains("tabCornerRadius = 8.0"))
         XCTAssertFalse(text.contains("sentenceExpansionDelay"))
         try text.write(to: configurationURL, atomically: true, encoding: .utf8)
+        try extensionText.write(
+            to: settings.extensionConfigurationURL,
+            atomically: true,
+            encoding: .utf8
+        )
         settings.reload()
 
         XCTAssertNil(settings.loadError)
@@ -299,7 +308,7 @@ final class SemanticSelectionTests: XCTestCase {
         XCTAssertEqual(settings.configuration.overlay.labelFontSize, 13)
         XCTAssertEqual(settings.configuration.extensionOverlay.fillOpacity, 0.2)
         XCTAssertEqual(settings.configuration.interaction.requiredModifiers, [.command, .shift])
-        XCTAssertEqual(settings.configuration.webExtensions.disabled, ["org.example.disabled"])
+        XCTAssertEqual(settings.extensionConfiguration.disabled, ["org.example.disabled"])
 
         let configurationWithoutNewTabInsets = text
             .components(separatedBy: .newlines)
@@ -339,6 +348,56 @@ final class SemanticSelectionTests: XCTestCase {
 
         XCTAssertNotNil(settings.loadError)
         XCTAssertEqual(settings.configuration.capture.width, 1_280)
+    }
+
+    @MainActor
+    func testApplyingSettingsPreservesIndependentExtensionConfiguration() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("HoverySeparatedConfigurationTests-\(UUID().uuidString)", isDirectory: true)
+        let configurationURL = directory.appendingPathComponent("config.toml")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let settings = HoverySettings(configurationURL: configurationURL)
+        let originalSettings = settings.configuration
+        let settingsChanged = expectation(description: "Ordinary settings changed")
+        settingsChanged.isInverted = true
+        let settingsCancellable = settings.$configuration
+            .dropFirst()
+            .sink { _ in settingsChanged.fulfill() }
+        settings.updateExtensions { extensions in
+            extensions.disabled = ["org.example.disabled"]
+            extensions.trustedNative = ["org.example.trusted"]
+        }
+
+        await fulfillment(
+            of: [settingsChanged],
+            timeout: TestTiming.configurationObservationTimeout
+        )
+        settingsCancellable.cancel()
+
+        XCTAssertEqual(settings.configuration, originalSettings)
+        let ordinaryText = try String(contentsOf: configurationURL, encoding: .utf8)
+        let extensionText = try String(
+            contentsOf: settings.extensionConfigurationURL,
+            encoding: .utf8
+        )
+        XCTAssertFalse(ordinaryText.contains("org.example.disabled"))
+        XCTAssertFalse(ordinaryText.contains("org.example.trusted"))
+        XCTAssertTrue(extensionText.contains("org.example.disabled"))
+        XCTAssertTrue(extensionText.contains("org.example.trusted"))
+
+        var draft = settings.configuration
+        draft.capture.width = 1_280
+        settings.replace(with: draft)
+
+        XCTAssertEqual(settings.configuration.capture.width, 1_280)
+        XCTAssertEqual(settings.extensionConfiguration.disabled, ["org.example.disabled"])
+        XCTAssertEqual(settings.extensionConfiguration.trustedNative, ["org.example.trusted"])
+
+        settings.reload()
+        XCTAssertEqual(settings.configuration.capture.width, 1_280)
+        XCTAssertEqual(settings.extensionConfiguration.disabled, ["org.example.disabled"])
+        XCTAssertEqual(settings.extensionConfiguration.trustedNative, ["org.example.trusted"])
     }
 
     func testWebExtensionManifestLoadsESMEntryAndPermissions() throws {
@@ -508,9 +567,9 @@ final class SemanticSelectionTests: XCTestCase {
 
         manager.setEnabled(false, identifier: "org.example.managed")
 
-        XCTAssertEqual(settings.configuration.webExtensions.disabled, ["org.example.managed"])
+        XCTAssertEqual(settings.extensionConfiguration.disabled, ["org.example.managed"])
         XCTAssertFalse(try XCTUnwrap(manager.extensions.first).isEnabled)
-        let persisted = try String(contentsOf: configurationURL, encoding: .utf8)
+        let persisted = try String(contentsOf: settings.extensionConfigurationURL, encoding: .utf8)
         XCTAssertTrue(persisted.contains("disabled = [\"org.example.managed\"]"))
     }
 
@@ -631,14 +690,14 @@ final class SemanticSelectionTests: XCTestCase {
 
         manager.setEnabled(true, identifier: "org.example.native")
         XCTAssertFalse(try XCTUnwrap(manager.extensions.first).isEnabled)
-        XCTAssertTrue(settings.configuration.webExtensions.trustedNative.isEmpty)
+        XCTAssertTrue(settings.extensionConfiguration.trustedNative.isEmpty)
 
         manager.trustAndEnableNativeExtension(identifier: "org.example.native")
         status = try XCTUnwrap(manager.extensions.first)
         XCTAssertTrue(status.isNativeCodeTrusted)
         XCTAssertTrue(status.isEnabled)
-        XCTAssertEqual(settings.configuration.webExtensions.trustedNative, ["org.example.native"])
-        let persisted = try String(contentsOf: configurationURL, encoding: .utf8)
+        XCTAssertEqual(settings.extensionConfiguration.trustedNative, ["org.example.native"])
+        let persisted = try String(contentsOf: settings.extensionConfigurationURL, encoding: .utf8)
         XCTAssertTrue(persisted.contains("trustedNative = [\"org.example.native\"]"))
     }
 

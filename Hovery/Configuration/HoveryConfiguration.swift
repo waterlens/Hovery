@@ -31,6 +31,64 @@ enum RecognitionModifier: String, Codable, CaseIterable, Sendable {
     }
 }
 
+struct WebExtensionConfiguration: Codable, Equatable, Sendable {
+    var directory = "Extensions"
+    var preload = true
+    var disabled: [String] = []
+    var trustedNative: [String] = []
+    var nativeRequestTimeout = 5.0
+    var nativeMaximumMessageBytes = 4_194_304
+
+    private enum Limits {
+        static let nativeRequestTimeout: ClosedRange<Double> = 0.1...60
+        static let nativeMessageBytes: ClosedRange<Int> = 1_024...(64 * 1_024 * 1_024)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case directory
+        case preload
+        case disabled
+        case trustedNative
+        case nativeRequestTimeout
+        case nativeMaximumMessageBytes
+    }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let defaults = Self()
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        directory = try container.decodeIfPresent(String.self, forKey: .directory)
+            ?? defaults.directory
+        preload = try container.decodeIfPresent(Bool.self, forKey: .preload)
+            ?? defaults.preload
+        disabled = try container.decodeIfPresent([String].self, forKey: .disabled) ?? []
+        trustedNative = try container.decodeIfPresent([String].self, forKey: .trustedNative) ?? []
+        nativeRequestTimeout = try container.decodeIfPresent(Double.self, forKey: .nativeRequestTimeout)
+            ?? defaults.nativeRequestTimeout
+        nativeMaximumMessageBytes = try container.decodeIfPresent(
+            Int.self,
+            forKey: .nativeMaximumMessageBytes
+        ) ?? defaults.nativeMaximumMessageBytes
+    }
+
+    func sanitized() -> WebExtensionConfiguration {
+        var value = self
+        if value.directory.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            value.directory = Self().directory
+        }
+        value.disabled = Array(Set(value.disabled)).sorted()
+        value.trustedNative = Array(Set(value.trustedNative)).sorted()
+        value.nativeRequestTimeout = value.nativeRequestTimeout.clamped(
+            to: Limits.nativeRequestTimeout
+        )
+        value.nativeMaximumMessageBytes = value.nativeMaximumMessageBytes.clamped(
+            to: Limits.nativeMessageBytes
+        )
+        return value
+    }
+}
+
 struct HoveryConfiguration: Codable, Equatable, Sendable {
     struct Interaction: Codable, Equatable, Sendable {
         var movementThreshold = 4.0
@@ -240,43 +298,6 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
         }
     }
 
-    struct WebExtensions: Codable, Equatable, Sendable {
-        var directory = "Extensions"
-        var preload = true
-        var disabled: [String] = []
-        var trustedNative: [String] = []
-        var nativeRequestTimeout = 5.0
-        var nativeMaximumMessageBytes = 4_194_304
-
-        private enum CodingKeys: String, CodingKey {
-            case directory
-            case preload
-            case disabled
-            case trustedNative
-            case nativeRequestTimeout
-            case nativeMaximumMessageBytes
-        }
-
-        init() {}
-
-        init(from decoder: Decoder) throws {
-            let defaults = Self()
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            directory = try container.decodeIfPresent(String.self, forKey: .directory)
-                ?? defaults.directory
-            preload = try container.decodeIfPresent(Bool.self, forKey: .preload)
-                ?? defaults.preload
-            disabled = try container.decodeIfPresent([String].self, forKey: .disabled) ?? []
-            trustedNative = try container.decodeIfPresent([String].self, forKey: .trustedNative) ?? []
-            nativeRequestTimeout = try container.decodeIfPresent(Double.self, forKey: .nativeRequestTimeout)
-                ?? defaults.nativeRequestTimeout
-            nativeMaximumMessageBytes = try container.decodeIfPresent(
-                Int.self,
-                forKey: .nativeMaximumMessageBytes
-            ) ?? defaults.nativeMaximumMessageBytes
-        }
-    }
-
     struct ExtensionOverlay: Codable, Equatable, Sendable {
         var enabled = true
         var fillOpacity = 0.0
@@ -400,7 +421,6 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
     var regionSelection = RegionSelection()
     var overlay = Overlay()
     var extensionOverlay = ExtensionOverlay()
-    var webExtensions = WebExtensions()
     var resultsPresentation = ResultsPresentation()
 
     private enum CodingKeys: String, CodingKey {
@@ -410,7 +430,6 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
         case regionSelection
         case overlay
         case extensionOverlay
-        case webExtensions
         case resultsPresentation
     }
 
@@ -431,8 +450,6 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
             ?? defaults.overlay
         extensionOverlay = try container.decodeIfPresent(ExtensionOverlay.self, forKey: .extensionOverlay)
             ?? defaults.extensionOverlay
-        webExtensions = try container.decodeIfPresent(WebExtensions.self, forKey: .webExtensions)
-            ?? defaults.webExtensions
         resultsPresentation = try container.decodeIfPresent(
             ResultsPresentation.self,
             forKey: .resultsPresentation
@@ -497,10 +514,6 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
             static let cornerRadius: ClosedRange<Double> = 0...100
         }
 
-        enum WebExtensions {
-            static let nativeRequestTimeout: ClosedRange<Double> = 0.1...60
-            static let nativeMessageBytes: ClosedRange<Int> = 1_024...(64 * 1_024 * 1_024)
-        }
     }
 
     func sanitized() -> HoveryConfiguration {
@@ -658,18 +671,6 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
             to: Limits.Overlay.opacity
         )
 
-        if value.webExtensions.directory.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            value.webExtensions.directory = WebExtensions().directory
-        }
-        value.webExtensions.disabled = Array(Set(value.webExtensions.disabled)).sorted()
-        value.webExtensions.trustedNative = Array(Set(value.webExtensions.trustedNative)).sorted()
-        value.webExtensions.nativeRequestTimeout = value.webExtensions.nativeRequestTimeout.clamped(
-            to: Limits.WebExtensions.nativeRequestTimeout
-        )
-        value.webExtensions.nativeMaximumMessageBytes = value.webExtensions.nativeMaximumMessageBytes.clamped(
-            to: Limits.WebExtensions.nativeMessageBytes
-        )
-
         value.resultsPresentation.width = value.resultsPresentation.width.clamped(
             to: Limits.ResultsPresentation.width
         )
@@ -731,12 +732,15 @@ struct HoveryConfiguration: Codable, Equatable, Sendable {
 final class HoverySettings: ObservableObject {
     private enum FileFormat {
         static let numberFormat = "%.12g"
+        static let extensionsFileName = "extensions.toml"
     }
 
     @Published private(set) var configuration: HoveryConfiguration
+    @Published private(set) var extensionConfiguration: WebExtensionConfiguration
     @Published private(set) var loadError: String?
 
     let configurationURL: URL
+    let extensionConfigurationURL: URL
     private let fileManager: FileManager
     private let logger = Logger(subsystem: "app.hovery.Hovery", category: "Configuration")
     private var directoryMonitor: DispatchSourceFileSystemObject?
@@ -746,21 +750,27 @@ final class HoverySettings: ObservableObject {
         fileManager: FileManager = .default
     ) {
         self.fileManager = fileManager
-        self.configurationURL = configurationURL ?? Self.defaultConfigurationURL(fileManager: fileManager)
+        let resolvedConfigurationURL = configurationURL
+            ?? Self.defaultConfigurationURL(fileManager: fileManager)
+        self.configurationURL = resolvedConfigurationURL
+        extensionConfigurationURL = resolvedConfigurationURL
+            .deletingLastPathComponent()
+            .appendingPathComponent(FileFormat.extensionsFileName, isDirectory: false)
         configuration = .standard
+        extensionConfiguration = WebExtensionConfiguration()
 
         do {
-            try createConfigurationFileIfNeeded()
-            try loadConfiguration()
-            startMonitoringConfigurationDirectory()
+            try createConfigurationFilesIfNeeded()
         } catch {
             loadError = error.localizedDescription
             logger.error("Failed to initialize configuration: \(error.localizedDescription, privacy: .public)")
         }
+        reload()
+        startMonitoringConfigurationDirectory()
     }
 
     var extensionsDirectoryURL: URL {
-        let expanded = (configuration.webExtensions.directory as NSString).expandingTildeInPath
+        let expanded = (extensionConfiguration.directory as NSString).expandingTildeInPath
         if expanded.hasPrefix("/") {
             return URL(fileURLWithPath: expanded, isDirectory: true).standardizedFileURL
         }
@@ -779,12 +789,26 @@ final class HoverySettings: ObservableObject {
             loadError = error.localizedDescription
             logger.error("Ignoring invalid TOML configuration: \(error.localizedDescription, privacy: .public)")
         }
+        do {
+            try loadExtensionConfiguration()
+            logger.notice("Reloaded extension TOML configuration")
+        } catch {
+            logger.error(
+                "Ignoring invalid extension TOML configuration: \(error.localizedDescription, privacy: .public)"
+            )
+        }
     }
 
     func update(_ change: (inout HoveryConfiguration) -> Void) {
         var next = configuration
         change(&next)
         replace(with: next)
+    }
+
+    func updateExtensions(_ change: (inout WebExtensionConfiguration) -> Void) {
+        var next = extensionConfiguration
+        change(&next)
+        replaceExtensions(with: next)
     }
 
     func replace(with next: HoveryConfiguration) {
@@ -798,6 +822,18 @@ final class HoverySettings: ObservableObject {
             configuration = previous
             loadError = error.localizedDescription
             logger.error("Failed to save TOML configuration: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func replaceExtensions(with next: WebExtensionConfiguration) {
+        let previous = extensionConfiguration
+        extensionConfiguration = next.sanitized()
+
+        do {
+            try writeExtensionConfiguration(extensionConfiguration)
+        } catch {
+            extensionConfiguration = previous
+            logger.error("Failed to save extension configuration: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -829,21 +865,37 @@ final class HoverySettings: ObservableObject {
             .appendingPathComponent("config.toml", isDirectory: false)
     }
 
-    private func createConfigurationFileIfNeeded() throws {
-        guard !fileManager.fileExists(atPath: configurationURL.path) else { return }
+    private func createConfigurationFilesIfNeeded() throws {
         try fileManager.createDirectory(
             at: configurationURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
-
-        try writeConfiguration(.standard)
+        if !fileManager.fileExists(atPath: configurationURL.path) {
+            try writeConfiguration(.standard)
+        }
+        if !fileManager.fileExists(atPath: extensionConfigurationURL.path) {
+            try writeExtensionConfiguration(WebExtensionConfiguration())
+        }
     }
 
     private func loadConfiguration() throws {
         let text = try String(contentsOf: configurationURL, encoding: .utf8)
         let table = try TOMLTable(string: text)
         let decoded = try TOMLDecoder().decode(HoveryConfiguration.self, from: table)
-        configuration = decoded.sanitized()
+        let nextConfiguration = decoded.sanitized()
+        if configuration != nextConfiguration {
+            configuration = nextConfiguration
+        }
+    }
+
+    private func loadExtensionConfiguration() throws {
+        let text = try String(contentsOf: extensionConfigurationURL, encoding: .utf8)
+        let table = try TOMLTable(string: text)
+        let decoded = try TOMLDecoder().decode(WebExtensionConfiguration.self, from: table)
+        let nextExtensionConfiguration = decoded.sanitized()
+        if extensionConfiguration != nextExtensionConfiguration {
+            extensionConfiguration = nextExtensionConfiguration
+        }
     }
 
     static func serialized(_ configuration: HoveryConfiguration) throws -> String {
@@ -853,7 +905,6 @@ final class HoverySettings: ObservableObject {
         let region = configuration.regionSelection
         let overlay = configuration.overlay
         let extensionOverlay = configuration.extensionOverlay
-        let webExtensions = configuration.webExtensions
         let resultsPresentation = configuration.resultsPresentation
 
         return """
@@ -928,14 +979,6 @@ final class HoverySettings: ObservableObject {
         material = \(tomlString(extensionOverlay.material))
         materialOpacity = \(tomlNumber(extensionOverlay.materialOpacity))
 
-        [webExtensions]
-        directory = \(tomlString(webExtensions.directory))
-        preload = \(webExtensions.preload)
-        disabled = \(tomlStringArray(webExtensions.disabled))
-        trustedNative = \(tomlStringArray(webExtensions.trustedNative))
-        nativeRequestTimeout = \(tomlNumber(webExtensions.nativeRequestTimeout))
-        nativeMaximumMessageBytes = \(webExtensions.nativeMaximumMessageBytes)
-
         [resultsPresentation]
         enabled = \(resultsPresentation.enabled)
         width = \(tomlNumber(resultsPresentation.width))
@@ -953,6 +996,17 @@ final class HoverySettings: ObservableObject {
         screenEdgeInset = \(tomlNumber(resultsPresentation.screenEdgeInset))
         cornerRadius = \(tomlNumber(resultsPresentation.cornerRadius))
         interactionCorridorPadding = \(tomlNumber(resultsPresentation.interactionCorridorPadding))
+        """
+    }
+
+    static func serializedExtensions(_ extensions: WebExtensionConfiguration) -> String {
+        """
+        directory = \(tomlString(extensions.directory))
+        preload = \(extensions.preload)
+        disabled = \(tomlStringArray(extensions.disabled))
+        trustedNative = \(tomlStringArray(extensions.trustedNative))
+        nativeRequestTimeout = \(tomlNumber(extensions.nativeRequestTimeout))
+        nativeMaximumMessageBytes = \(extensions.nativeMaximumMessageBytes)
         """
     }
 
@@ -978,6 +1032,11 @@ final class HoverySettings: ObservableObject {
     private func writeConfiguration(_ configuration: HoveryConfiguration) throws {
         let text = try Self.serialized(configuration)
         try text.write(to: configurationURL, atomically: true, encoding: .utf8)
+    }
+
+    private func writeExtensionConfiguration(_ extensions: WebExtensionConfiguration) throws {
+        let text = Self.serializedExtensions(extensions)
+        try text.write(to: extensionConfigurationURL, atomically: true, encoding: .utf8)
     }
 
     private func startMonitoringConfigurationDirectory() {

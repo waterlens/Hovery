@@ -1,6 +1,6 @@
 # Hovery Web extensions
 
-A Web extension is a directory ending in `.hoveryextension`. Put extension packages in the directory configured by `webExtensions.directory`; the default is `Extensions` beside `config.toml`.
+A Web extension is a directory ending in `.hoveryextension`. Put extension packages in the directory configured by `directory` in `extensions.toml`; the default is `Extensions` beside the configuration files.
 
 ## Manifest
 
@@ -126,10 +126,9 @@ The helper writes exactly one response with the matching `id` to standard output
 {"id":"request-id","result":{"format":"html","content":"..."}}
 ```
 
-Failures use `{"id":"request-id","error":{"message":"..."}}`. Standard output is reserved for protocol messages; helpers should write diagnostics to standard error. Requests may be concurrent and responses may arrive in any order. Runtime limits are configured in `config.toml`:
+Failures use `{"id":"request-id","error":{"message":"..."}}`. Standard output is reserved for protocol messages; helpers should write diagnostics to standard error. Requests may be concurrent and responses may arrive in any order. Runtime limits are configured in `extensions.toml`:
 
 ```toml
-[webExtensions]
 nativeRequestTimeout = 5.0
 nativeMaximumMessageBytes = 4194304
 ```

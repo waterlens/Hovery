@@ -128,13 +128,6 @@ struct SettingsView: View {
             Button("Open TOML File") {
                 NSWorkspace.shared.open(settings.configurationURL)
             }
-            Button("Open Extensions Folder") {
-                try? FileManager.default.createDirectory(
-                    at: settings.extensionsDirectoryURL,
-                    withIntermediateDirectories: true
-                )
-                NSWorkspace.shared.open(settings.extensionsDirectoryURL)
-            }
             Button("Reload") {
                 settings.reload()
                 draft = settings.configuration
