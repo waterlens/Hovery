@@ -6,10 +6,17 @@ final class WebExtensionResourceHandler: NSObject, WKURLSchemeHandler {
     static let scheme = "hovery-extension"
 
     private let descriptor: WebExtensionDescriptor
+    private let networkOrigins: [String]
     private let fileManager: FileManager
 
-    init(descriptor: WebExtensionDescriptor, fileManager: FileManager = .default) {
+    /// `networkOrigins` defaults to the manifest's origins; the runtime adds origins granted by URL settings.
+    init(
+        descriptor: WebExtensionDescriptor,
+        networkOrigins: [String]? = nil,
+        fileManager: FileManager = .default
+    ) {
         self.descriptor = descriptor
+        self.networkOrigins = networkOrigins ?? descriptor.allowedNetworkOrigins
         self.fileManager = fileManager
     }
 
@@ -83,7 +90,7 @@ final class WebExtensionResourceHandler: NSObject, WKURLSchemeHandler {
 
     private func injectContentSecurityPolicy(into data: Data) -> Data {
         guard var html = String(data: data, encoding: .utf8) else { return data }
-        let networkSources = descriptor.allowedNetworkOrigins.joined(separator: " ")
+        let networkSources = networkOrigins.joined(separator: " ")
         let connectSources = networkSources.isEmpty ? "'none'" : "'self' \(networkSources)"
         let policy = [
             "default-src 'none'",

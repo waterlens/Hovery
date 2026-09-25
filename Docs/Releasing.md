@@ -8,9 +8,10 @@ Every release build produces:
 
 - `Hovery-<version>.dmg`, presenting the universal Hovery app in a standard drag-to-Applications installer window. The Apache license and NOTICE remain bundled inside the app.
 - `AppleDictionary-<version>.hoveryextension.zip`, containing the universal native helper and web extension resources.
+- `AutoTranslator-<version>.hoveryextension.zip`, containing the Web-only Auto Translator extension.
 - `SHA256SUMS` and `RELEASE-INFO.txt`.
 
-`Scripts/package-release.sh` owns the complete transaction: it builds, signs, packages, optionally notarizes, mounts and verifies the DMG, extracts and verifies the extension, checks both architectures and signing teams, and writes checksums. A partially successful sequence cannot be mistaken for a verified release.
+`Scripts/package-release.sh` owns the complete transaction: it builds, signs, packages, optionally notarizes, mounts and verifies the DMG, extracts and verifies the extensions, checks both architectures and signing teams, and writes checksums. A partially successful sequence cannot be mistaken for a verified release. The Auto Translator archive contains no executable code and is not submitted for notarization.
 
 ## Developer ID secrets
 

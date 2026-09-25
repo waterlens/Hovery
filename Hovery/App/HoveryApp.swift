@@ -39,6 +39,9 @@ final class HoveryAppDelegate: NSObject, NSApplicationDelegate {
         self.settings = settings
         engine = HoverEngine(settings: settings)
         super.init()
+        engine.webExtensions.settingsRequestHandler = { [weak self] identifier in
+            self?.showExtensionSettings(identifier: identifier)
+        }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -58,6 +61,10 @@ final class HoveryAppDelegate: NSObject, NSApplicationDelegate {
 
     func showExtensionsWindow() {
         extensionsWindowController.present()
+    }
+
+    func showExtensionSettings(identifier: String) {
+        extensionsWindowController.present(settingsFor: identifier)
     }
 
     private func observePermissions() {

@@ -123,7 +123,7 @@ jobs:
           printf 'HOVERY_NOTARY_KEY_ID=%s\n' "$NOTARY_KEY_ID" >> "$GITHUB_ENV"
           printf 'HOVERY_NOTARY_ISSUER_ID=%s\n' "$NOTARY_ISSUER_ID" >> "$GITHUB_ENV"
 
-      - name: Package application and dictionary extension
+      - name: Package application and extensions
         env:
           HOVERY_RELEASE_SIGNING: ${{ steps.security.outputs.signing }}
           HOVERY_RELEASE_NOTARIZE: ${{ steps.security.outputs.notarize == 'true' && '1' || '0' }}

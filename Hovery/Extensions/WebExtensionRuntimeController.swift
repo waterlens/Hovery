@@ -14,6 +14,7 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
     }
 
     let descriptor: WebExtensionDescriptor
+    let settings: WebExtensionResolvedSettings
     var contentHeightDidChange: ((_ requestID: String, _ height: CGFloat) -> Void)?
     var failureDidOccur: ((String) -> Void)?
     var selectionOverlayDidChange: ((_ requestID: String, _ items: [WebExtensionOverlayItem]?) -> Void)?
@@ -29,13 +30,27 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
     private var isMounted = false
     private var pendingRequest: [String: Any]?
 
+    /// Settings are fixed for the lifetime of a runtime; the coordinator creates a new runtime when they change.
+    /// Without resolved settings, the extension receives its manifest defaults.
     init(
         descriptor: WebExtensionDescriptor,
+        settings: WebExtensionResolvedSettings? = nil,
         nativeConfiguration: WebExtensionConfiguration = .init(),
         nativeInvoker: (any WebExtensionNativeInvoking)? = nil
     ) {
+        let settings = settings ?? WebExtensionResolvedSettings(
+            descriptors: descriptor.settings,
+            storedValues: [:],
+            secrets: [:]
+        )
         self.descriptor = descriptor
-        resourceHandler = WebExtensionResourceHandler(descriptor: descriptor)
+        self.settings = settings
+        resourceHandler = WebExtensionResourceHandler(
+            descriptor: descriptor,
+            networkOrigins: descriptor.allowedNetworkOrigins + settings.networkOrigins.filter {
+                !descriptor.allowedNetworkOrigins.contains($0)
+            }
+        )
         let capabilityBroker = WebExtensionCapabilityBroker(
             descriptor: descriptor,
             configuration: nativeConfiguration,
@@ -243,6 +258,7 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                 const runtime = {
                     module: extensionModule,
                     root,
+                    settings: Object.freeze({ ...extensionSettings }),
                     capabilities: createCapabilities(),
                     createCapabilities,
                     controller: null,
@@ -254,6 +270,7 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                     await extensionModule.mount({
                         root,
                         extension: Object.freeze(extensionInfo),
+                        settings: runtime.settings,
                         capabilities: runtime.capabilities
                     });
                 }
@@ -268,7 +285,8 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                         "name": descriptor.name,
                         "capabilities": descriptor.allowedCapabilities,
                         "selectionOverlay": descriptor.allowsSelectionOverlay
-                    ]
+                    ],
+                    "extensionSettings": settings.scriptValues
                 ],
                 in: nil,
                 contentWorld: .page
@@ -380,6 +398,7 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                         ...request,
                         root: runtime.root,
                         signal: controller.signal,
+                        settings: runtime.settings,
                         capabilities: runtime.createCapabilities(controller.signal),
                         overlay
                     });

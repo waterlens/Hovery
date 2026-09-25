@@ -44,6 +44,8 @@ struct WebExtensionConfiguration: Codable, Equatable, Sendable {
     var trustedNative: [String] = []
     var nativeRequestTimeout = 5.0
     var nativeMaximumMessageBytes = 4_194_304
+    /// Non-secret setting values keyed by extension identifier, then by setting key.
+    var settings: [String: [String: WebExtensionSettingValue]] = [:]
 
     private enum Limits {
         static let nativeRequestTimeout: ClosedRange<Double> = 0.1...60
@@ -57,6 +59,30 @@ struct WebExtensionConfiguration: Codable, Equatable, Sendable {
         case trustedNative
         case nativeRequestTimeout
         case nativeMaximumMessageBytes
+        case settings
+    }
+
+    /// Decodes one extension's settings table, skipping values that are not strings, booleans, or numbers.
+    private struct StoredSettings: Decodable {
+        private struct Key: CodingKey {
+            let stringValue: String
+            var intValue: Int? { nil }
+
+            init(stringValue: String) {
+                self.stringValue = stringValue
+            }
+
+            init?(intValue: Int) { nil }
+        }
+
+        let values: [String: WebExtensionSettingValue]
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: Key.self)
+            values = container.allKeys.reduce(into: [:]) { values, key in
+                values[key.stringValue] = try? container.decode(WebExtensionSettingValue.self, forKey: key)
+            }
+        }
     }
 
     init() {}
@@ -76,6 +102,8 @@ struct WebExtensionConfiguration: Codable, Equatable, Sendable {
             Int.self,
             forKey: .nativeMaximumMessageBytes
         ) ?? defaults.nativeMaximumMessageBytes
+        settings = try container.decodeIfPresent([String: StoredSettings].self, forKey: .settings)?
+            .mapValues(\.values) ?? [:]
     }
 
     func sanitized() -> WebExtensionConfiguration {
@@ -85,6 +113,7 @@ struct WebExtensionConfiguration: Codable, Equatable, Sendable {
         }
         value.disabled = Array(Set(value.disabled)).sorted()
         value.trustedNative = Array(Set(value.trustedNative)).sorted()
+        value.settings = value.settings.filter { !$0.value.isEmpty }
         value.nativeRequestTimeout = value.nativeRequestTimeout.clamped(
             to: Limits.nativeRequestTimeout
         )
@@ -1065,7 +1094,7 @@ final class HoverySettings: ObservableObject {
     }
 
     static func serializedExtensions(_ extensions: WebExtensionConfiguration) -> String {
-        """
+        var text = """
         directory = \(tomlString(extensions.directory))
         preload = \(extensions.preload)
         disabled = \(tomlStringArray(extensions.disabled))
@@ -1073,6 +1102,15 @@ final class HoverySettings: ObservableObject {
         nativeRequestTimeout = \(tomlNumber(extensions.nativeRequestTimeout))
         nativeMaximumMessageBytes = \(extensions.nativeMaximumMessageBytes)
         """
+        for identifier in extensions.settings.keys.sorted() {
+            guard let values = extensions.settings[identifier], !values.isEmpty else { continue }
+            text += "\n\n[settings.\(tomlKey(identifier))]"
+            for key in values.keys.sorted() {
+                guard let value = values[key] else { continue }
+                text += "\n\(tomlKey(key)) = \(tomlValue(value))"
+            }
+        }
+        return text
     }
 
     private static func tomlNumber(_ value: Double) -> String {
@@ -1084,10 +1122,39 @@ final class HoverySettings: ObservableObject {
     }
 
     private static func tomlString(_ value: String) -> String {
-        let escaped = value
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
+        var escaped = ""
+        for scalar in value.unicodeScalars {
+            switch scalar {
+            case "\\": escaped += "\\\\"
+            case "\"": escaped += "\\\""
+            case "\n": escaped += "\\n"
+            case "\r": escaped += "\\r"
+            case "\t": escaped += "\\t"
+            case _ where scalar.value < 0x20 || scalar.value == 0x7F:
+                escaped += String(format: "\\u%04X", scalar.value)
+            default:
+                escaped.unicodeScalars.append(scalar)
+            }
+        }
         return "\"\(escaped)\""
+    }
+
+    private static func tomlKey(_ key: String) -> String {
+        let bareKeyCharacters = CharacterSet(
+            charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
+        )
+        guard !key.isEmpty, key.unicodeScalars.allSatisfy(bareKeyCharacters.contains) else {
+            return tomlString(key)
+        }
+        return key
+    }
+
+    private static func tomlValue(_ value: WebExtensionSettingValue) -> String {
+        switch value {
+        case .string(let text): tomlString(text)
+        case .boolean(let flag): "\(flag)"
+        case .number(let number): tomlNumber(number)
+        }
     }
 
     private static func tomlStringArray(_ values: [String]) -> String {

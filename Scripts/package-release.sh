@@ -89,8 +89,11 @@ APP_PRODUCT="$APP_DERIVED_DATA/Build/Products/Release/Hovery.app"
 HELPER_PRODUCT="$DICTIONARY_DERIVED_DATA/Build/Products/Release/AppleDictionaryHelper"
 STAGED_APP="$STAGING_DIRECTORY/Hovery.app"
 STAGED_EXTENSION="$STAGING_DIRECTORY/AppleDictionary.hoveryextension"
+TRANSLATOR_SOURCE_DIRECTORY="$PROJECT_ROOT/Examples/AutoTranslator/Extension/AutoTranslator.hoveryextension"
+STAGED_TRANSLATOR="$STAGING_DIRECTORY/AutoTranslator.hoveryextension"
 DMG_PATH="$ARTIFACT_DIRECTORY/Hovery-$VERSION.dmg"
 EXTENSION_ARCHIVE="$ARTIFACT_DIRECTORY/AppleDictionary-$VERSION.hoveryextension.zip"
+TRANSLATOR_ARCHIVE="$ARTIFACT_DIRECTORY/AutoTranslator-$VERSION.hoveryextension.zip"
 
 case "$ARTIFACT_ROOT" in
     "$PROJECT_ROOT"/.build/*) ;;
@@ -174,6 +177,7 @@ fi
 /bin/rm -f "$STAGED_EXTENSION/native/AppleDictionaryHelper"
 /usr/bin/ditto "$HELPER_PRODUCT" "$STAGED_EXTENSION/native/AppleDictionaryHelper"
 /bin/chmod 755 "$STAGED_EXTENSION/native/AppleDictionaryHelper"
+/usr/bin/ditto "$TRANSLATOR_SOURCE_DIRECTORY" "$STAGED_TRANSLATOR"
 
 if [ "$SIGNING_MODE" != "unsigned" ]; then
     /usr/bin/codesign --verify --deep --strict --verbose=2 "$STAGED_APP"
@@ -185,6 +189,9 @@ fi
     /usr/bin/ditto -c -k --sequesterRsrc --keepParent \
         AppleDictionary.hoveryextension \
         "$EXTENSION_ARCHIVE"
+    /usr/bin/ditto -c -k --sequesterRsrc --keepParent \
+        AutoTranslator.hoveryextension \
+        "$TRANSLATOR_ARCHIVE"
 )
 
 /usr/bin/ditto "$STAGED_APP" "$DMG_SOURCE_DIRECTORY/Hovery.app"
@@ -280,7 +287,8 @@ if [ "$NOTARIZE" -eq 1 ]; then
     /usr/bin/xcrun stapler validate "$DMG_PATH"
 
     # ZIP archives can be notarized but cannot carry a stapled ticket. The
-    # helper's ticket remains available to Gatekeeper online.
+    # helper's ticket remains available to Gatekeeper online. The Auto
+    # Translator archive contains no executable code, so it is not submitted.
     /usr/bin/xcrun notarytool submit "$EXTENSION_ARCHIVE" \
         --key "$HOVERY_NOTARY_KEY_PATH" \
         --key-id "$HOVERY_NOTARY_KEY_ID" \
@@ -373,6 +381,12 @@ if [ "$SIGNING_MODE" != "unsigned" ]; then
         exit 1
     fi
 fi
+/usr/bin/ditto -x -k "$TRANSLATOR_ARCHIVE" "$EXTRACT_DIRECTORY"
+EXTRACTED_TRANSLATOR="$EXTRACT_DIRECTORY/AutoTranslator.hoveryextension"
+if [ ! -f "$EXTRACTED_TRANSLATOR/manifest.toml" ] || [ ! -f "$EXTRACTED_TRANSLATOR/web/main.js" ]; then
+    printf '%s\n' "The Auto Translator extension archive is incomplete." >&2
+    exit 1
+fi
 if [ "$NOTARIZED" = yes ]; then
     /usr/bin/xcrun stapler validate "$DMG_PATH"
     /usr/sbin/spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG_PATH"
@@ -383,9 +397,10 @@ fi
     /usr/bin/shasum -a 256 \
         "Hovery-$VERSION.dmg" \
         "AppleDictionary-$VERSION.hoveryextension.zip" \
+        "AutoTranslator-$VERSION.hoveryextension.zip" \
         RELEASE-INFO.txt \
         > SHA256SUMS
 )
 
 printf '%s\n' "Created release artifacts:"
-printf '  %s\n' "$DMG_PATH" "$EXTENSION_ARCHIVE"
+printf '  %s\n' "$DMG_PATH" "$EXTENSION_ARCHIVE" "$TRANSLATOR_ARCHIVE"

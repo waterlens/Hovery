@@ -29,6 +29,7 @@ struct WebExtensionDescriptor: Equatable, Sendable {
     let allowedCapabilities: [String]
     let allowsSelectionOverlay: Bool
     let nativeHost: WebExtensionNativeDescriptor?
+    let settings: [WebExtensionSettingDescriptor]
 }
 
 struct WebExtensionNativeDescriptor: Equatable, Sendable {
@@ -51,6 +52,7 @@ enum WebExtensionManifestError: LocalizedError {
     case missingResource(String)
     case invalidNetworkOrigin(String)
     case unsupportedNativeProtocol(String)
+    case invalidSetting(key: String, reason: String)
 
     var errorDescription: String? {
         switch self {
@@ -66,6 +68,8 @@ enum WebExtensionManifestError: LocalizedError {
             "Invalid extension network origin: \(origin)"
         case .unsupportedNativeProtocol(let value):
             "Unsupported native extension protocol: \(value)"
+        case .invalidSetting(let key, let reason):
+            "Invalid extension setting \(key): \(reason)"
         }
     }
 }
@@ -134,16 +138,85 @@ struct WebExtensionCatalog {
             }
         }
 
+        struct Setting: Decodable {
+            struct Option: Decodable {
+                let value: String
+                let title: String
+
+                private enum CodingKeys: String, CodingKey {
+                    case value
+                    case title
+                }
+
+                init(from decoder: Decoder) throws {
+                    if let value = try? decoder.singleValueContainer().decode(String.self) {
+                        self.value = value
+                        title = value
+                        return
+                    }
+                    let container = try decoder.container(keyedBy: CodingKeys.self)
+                    value = try container.decode(String.self, forKey: .value)
+                    title = try container.decodeIfPresent(String.self, forKey: .title) ?? value
+                }
+            }
+
+            let key: String
+            let title: String?
+            let type: String
+            let detail: String?
+            let placeholder: String?
+            let defaultValue: WebExtensionSettingValue?
+            let required: Bool
+            let network: Bool
+            let minimum: WebExtensionSettingValue?
+            let maximum: WebExtensionSettingValue?
+            let options: [Option]
+
+            private enum CodingKeys: String, CodingKey {
+                case key
+                case title
+                case type
+                case detail = "description"
+                case placeholder
+                case defaultValue = "default"
+                case required
+                case network
+                case minimum
+                case maximum
+                case options
+            }
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                key = try container.decode(String.self, forKey: .key)
+                title = try container.decodeIfPresent(String.self, forKey: .title)
+                type = try container.decode(String.self, forKey: .type)
+                detail = try container.decodeIfPresent(String.self, forKey: .detail)
+                placeholder = try container.decodeIfPresent(String.self, forKey: .placeholder)
+                defaultValue = try container.decodeIfPresent(
+                    WebExtensionSettingValue.self,
+                    forKey: .defaultValue
+                )
+                required = try container.decodeIfPresent(Bool.self, forKey: .required) ?? false
+                network = try container.decodeIfPresent(Bool.self, forKey: .network) ?? false
+                minimum = try container.decodeIfPresent(WebExtensionSettingValue.self, forKey: .minimum)
+                maximum = try container.decodeIfPresent(WebExtensionSettingValue.self, forKey: .maximum)
+                options = try container.decodeIfPresent([Option].self, forKey: .options) ?? []
+            }
+        }
+
         let metadata: Metadata
         let view: View
         let permissions: Permissions
         let native: Native?
+        let settings: [Setting]
 
         private enum CodingKeys: String, CodingKey {
             case metadata = "extension"
             case view
             case permissions
             case native
+            case settings
         }
 
         init(from decoder: Decoder) throws {
@@ -153,6 +226,7 @@ struct WebExtensionCatalog {
             permissions = try container.decodeIfPresent(Permissions.self, forKey: .permissions)
                 ?? Permissions(network: [], capabilities: [], selectionOverlay: false)
             native = try container.decodeIfPresent(Native.self, forKey: .native)
+            settings = try container.decodeIfPresent([Setting].self, forKey: .settings) ?? []
         }
     }
 
@@ -256,6 +330,7 @@ struct WebExtensionCatalog {
         }
 
         let origins = try manifest.permissions.network.map(validateNetworkOrigin)
+        let settings = try settingDescriptors(from: manifest.settings)
         return WebExtensionDescriptor(
             identifier: manifest.metadata.id,
             name: manifest.metadata.name,
@@ -272,7 +347,8 @@ struct WebExtensionCatalog {
                     executablePath: $0.executable,
                     communicationProtocol: $0.communicationProtocol
                 )
-            }
+            },
+            settings: settings
         )
     }
 
@@ -309,19 +385,130 @@ struct WebExtensionCatalog {
 
     private static func validateNetworkOrigin(_ origin: String) throws -> String {
         guard let components = URLComponents(string: origin),
-              let scheme = components.scheme?.lowercased(),
-              ["https", "http", "wss", "ws"].contains(scheme),
-              components.host != nil,
               components.path.isEmpty || components.path == "/",
               components.query == nil,
-              components.fragment == nil else {
-            throw WebExtensionManifestError.invalidNetworkOrigin(origin)
-        }
-        var normalized = components
-        normalized.path = ""
-        guard let value = normalized.string else {
+              components.fragment == nil,
+              let value = WebExtensionNetworkOrigin.origin(of: components) else {
             throw WebExtensionManifestError.invalidNetworkOrigin(origin)
         }
         return value
+    }
+
+    private static func settingDescriptors(
+        from settings: [Manifest.Setting]
+    ) throws -> [WebExtensionSettingDescriptor] {
+        var keys = Set<String>()
+        return try settings.map { setting in
+            let key = setting.key
+            func invalid(_ reason: String) -> WebExtensionManifestError {
+                .invalidSetting(key: key, reason: reason)
+            }
+
+            guard isValidSettingKey(key) else {
+                throw invalid("Keys must start with a letter and contain only letters, digits, and underscores.")
+            }
+            guard keys.insert(key).inserted else {
+                throw invalid("The key is declared more than once.")
+            }
+            guard let type = WebExtensionSettingType(rawValue: setting.type) else {
+                throw invalid("Unsupported type \"\(setting.type)\".")
+            }
+            guard !setting.network || type == .url else {
+                throw invalid("Only url settings can grant network access.")
+            }
+            guard setting.options.isEmpty || type == .choice else {
+                throw invalid("Only choice settings can declare options.")
+            }
+            guard (setting.minimum == nil && setting.maximum == nil) || type == .number else {
+                throw invalid("Only number settings can declare a minimum or maximum.")
+            }
+            let minimum = try setting.minimum.map { value in
+                guard let number = value.numberValue, number.isFinite else {
+                    throw invalid("The minimum must be a number.")
+                }
+                return number
+            }
+            let maximum = try setting.maximum.map { value in
+                guard let number = value.numberValue, number.isFinite else {
+                    throw invalid("The maximum must be a number.")
+                }
+                return number
+            }
+            if let minimum, let maximum, minimum > maximum {
+                throw invalid("The minimum is greater than the maximum.")
+            }
+            let options = setting.options.map {
+                WebExtensionSettingOption(value: $0.value, title: $0.title)
+            }
+            if type == .choice {
+                guard !options.isEmpty else {
+                    throw invalid("A choice needs at least one option.")
+                }
+                guard Set(options.map(\.value)).count == options.count else {
+                    throw invalid("Choice option values must be unique.")
+                }
+            }
+
+            let defaultValue: WebExtensionSettingValue
+            switch (type, setting.defaultValue) {
+            case (.secret, nil):
+                defaultValue = .string("")
+            case (.secret, _?):
+                throw invalid("Secret settings cannot declare a default value.")
+            case (.string, nil), (.text, nil), (.url, nil):
+                defaultValue = .string("")
+            case (.string, .string(let text)?), (.text, .string(let text)?):
+                defaultValue = .string(text)
+            case (.url, .string(let text)?):
+                guard text.isEmpty
+                    || URLComponents(string: text).flatMap(WebExtensionNetworkOrigin.origin(of:)) != nil else {
+                    throw invalid("The default value is not an http, https, ws, or wss URL.")
+                }
+                defaultValue = .string(text)
+            case (.boolean, nil):
+                defaultValue = .boolean(false)
+            case (.boolean, .boolean(let flag)?):
+                defaultValue = .boolean(flag)
+            case (.number, nil):
+                defaultValue = .number(min(max(0, minimum ?? -.infinity), maximum ?? .infinity))
+            case (.number, .number(let number)?):
+                guard number.isFinite,
+                      number >= minimum ?? -.infinity,
+                      number <= maximum ?? .infinity else {
+                    throw invalid("The default value is outside the allowed range.")
+                }
+                defaultValue = .number(number)
+            case (.choice, nil):
+                defaultValue = .string(options[0].value)
+            case (.choice, .string(let choice)?):
+                guard options.contains(where: { $0.value == choice }) else {
+                    throw invalid("The default value is not one of the options.")
+                }
+                defaultValue = .string(choice)
+            default:
+                throw invalid("The default value does not match the \(type.rawValue) type.")
+            }
+
+            return WebExtensionSettingDescriptor(
+                key: key,
+                title: setting.title ?? key,
+                type: type,
+                detail: setting.detail,
+                placeholder: setting.placeholder,
+                defaultValue: defaultValue,
+                isRequired: setting.required,
+                grantsNetworkAccess: setting.network,
+                minimum: minimum,
+                maximum: maximum,
+                options: options
+            )
+        }
+    }
+
+    private static func isValidSettingKey(_ key: String) -> Bool {
+        let letters = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+        let allowed = letters.union(CharacterSet(charactersIn: "0123456789_"))
+        guard let first = key.unicodeScalars.first, letters.contains(first) else { return false }
+        return key.unicodeScalars.allSatisfy(allowed.contains)
     }
 }

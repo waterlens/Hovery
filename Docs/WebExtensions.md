@@ -28,11 +28,11 @@ selectionOverlay = true
 The module must export `present(request)`. It may also export `mount(context)` and `unmount(context)`:
 
 ```js
-export function mount({ root, extension, capabilities }) {
+export function mount({ root, extension, settings, capabilities }) {
   // Called once after the document and ESM entry load.
 }
 
-export async function present({ id, input, selections, root, signal, capabilities, overlay }) {
+export async function present({ id, input, selections, root, signal, settings, capabilities, overlay }) {
   overlay.showInput()
   root.textContent = input.text
 }
@@ -44,7 +44,73 @@ export function unmount({ root }) {
 
 Hovery aborts `signal` before invoking `present()` for a newer request. The page owns its DOM and may use standard browser APIs, ESM imports, Web Components, or a bundled Web framework. There is no callback or event-based lifecycle API.
 
-Relative resources are isolated to the extension package. Network connections are disabled unless their origin is listed in the manifest. Browser CORS rules still apply.
+Relative resources are isolated to the extension package. Network connections are disabled unless their origin is listed in the manifest or granted by a [URL setting](#network-access-from-settings). Browser CORS rules still apply.
+
+## Settings
+
+An extension can declare settings. Hovery shows them when the user clicks the extension's gear button in **Extensions…** or in the results panel, stores the values, and passes them to the page:
+
+```toml
+[[settings]]
+key = "baseURL"
+title = "Base URL"
+type = "url"
+default = "https://api.example.com/v1"
+description = "Shown below the title."
+required = true
+network = true
+
+[[settings]]
+key = "apiKey"
+title = "API Key"
+type = "secret"
+
+[[settings]]
+key = "language"
+title = "Language"
+type = "choice"
+default = "en"
+options = [{ value = "en", title = "English" }, { value = "ja", title = "Japanese" }]
+```
+
+| Type | Value | Notes |
+| --- | --- | --- |
+| `string` | string | One line; surrounding whitespace is removed. |
+| `text` | string | Multiple lines. |
+| `secret` | string | Stored in the login Keychain. It cannot declare a default. |
+| `url` | string | An `http`, `https`, `ws`, or `wss` URL. |
+| `boolean` | boolean | |
+| `number` | number | Optional `minimum` and `maximum`; values outside them are clamped. |
+| `choice` | string | `options` lists strings or `{ value, title }` tables. |
+
+Keys start with a letter and contain only letters, digits, and underscores. `title`, `description`, `placeholder`, `default`, and `required` are optional. Without a default, text settings are empty, booleans are `false`, numbers are `0` clamped to their range, and choices use their first option. A required setting without a usable value marks the extension as needing setup in **Extensions…**; the extension still runs and should explain what is missing. **Restore Defaults** in the settings sheet resets the other settings but keeps secrets and required settings, so a service's URL, key, and model survive a reset.
+
+`mount()` and `present()` receive the same frozen `settings` object, which contains every declared key:
+
+```js
+export async function present({ input, settings, signal }) {
+  const response = await fetch(`${settings.baseURL}/lookup`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${settings.apiKey}` },
+    body: JSON.stringify({ text: input.text }),
+    signal
+  })
+}
+```
+
+Settings do not change while a page is loaded. Saving new values reloads the extension: Hovery calls `unmount()` and loads a new page with the new settings.
+
+Values that differ from their defaults are saved in `extensions.toml`, where they can also be edited by hand. Secrets never appear in this file.
+
+```toml
+[settings."org.example.extension"]
+baseURL = "https://api.example.com/v1"
+language = "ja"
+```
+
+### Network access from settings
+
+A `url` setting with `network = true` lets the extension connect to the origin of the URL the user enters, in addition to the origins listed under `[permissions]`. Only the scheme, host, and port are granted. The origin of the default value is granted until the user changes it.
 
 ## Selection overlay
 
@@ -143,4 +209,4 @@ The example prefers the system's rich panel document when that implementation is
 
 Example packages are not installed automatically. Copy one into the folder shown by **Extensions… → Open Extensions Folder**, then choose **Reload**.
 
-See `Examples/StreamingEcho/Extension/StreamingEcho.hoveryextension` for incremental page updates and `Examples/AppleDictionary` for the independently built native example.
+See `Examples/StreamingEcho/Extension/StreamingEcho.hoveryextension` for incremental page updates, `Examples/AppleDictionary` for the independently built native example, and `Examples/AutoTranslator` for a Web-only extension that uses settings to call an OpenAI-compatible API.

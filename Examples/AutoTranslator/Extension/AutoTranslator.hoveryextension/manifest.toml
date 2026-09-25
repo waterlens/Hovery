@@ -1,0 +1,123 @@
+[extension]
+id = "org.hovery.example.auto-translator"
+name = "Auto Translator"
+input = "sentence"
+order = 90
+
+[view]
+document = "web/index.html"
+module = "web/main.js"
+
+[permissions]
+network = []
+selectionOverlay = true
+
+[[settings]]
+key = "baseURL"
+title = "Base URL"
+type = "url"
+default = "https://api.openai.com/v1"
+placeholder = "https://api.openai.com/v1"
+required = true
+network = true
+
+[[settings]]
+key = "apiKey"
+title = "API Key"
+type = "secret"
+placeholder = "sk-…"
+
+[[settings]]
+key = "model"
+title = "Model"
+type = "string"
+placeholder = "gpt-4o-mini"
+required = true
+
+[[settings]]
+key = "targetLanguage"
+title = "Translate Into"
+type = "choice"
+default = "Simplified Chinese"
+options = [
+  { value = "Simplified Chinese", title = "Simplified Chinese (简体中文)" },
+  { value = "Traditional Chinese", title = "Traditional Chinese (繁體中文)" },
+  { value = "English", title = "English" },
+  { value = "Japanese", title = "Japanese (日本語)" },
+  { value = "Korean", title = "Korean (한국어)" },
+  { value = "French", title = "French (Français)" },
+  { value = "German", title = "German (Deutsch)" },
+  { value = "Spanish", title = "Spanish (Español)" },
+  { value = "Portuguese", title = "Portuguese (Português)" },
+  { value = "Italian", title = "Italian (Italiano)" },
+  { value = "Russian", title = "Russian (Русский)" },
+  { value = "Ukrainian", title = "Ukrainian (Українська)" },
+  { value = "Polish", title = "Polish (Polski)" },
+  { value = "Dutch", title = "Dutch (Nederlands)" },
+  { value = "Turkish", title = "Turkish (Türkçe)" },
+  { value = "Arabic", title = "Arabic (العربية)" },
+  { value = "Hindi", title = "Hindi (हिन्दी)" },
+  { value = "Indonesian", title = "Indonesian (Bahasa Indonesia)" },
+  { value = "Vietnamese", title = "Vietnamese (Tiếng Việt)" },
+  { value = "Thai", title = "Thai (ไทย)" },
+]
+
+[[settings]]
+key = "alternateLanguage"
+title = "If Already in That Language"
+type = "choice"
+default = "English"
+options = [
+  { value = "Simplified Chinese", title = "Simplified Chinese (简体中文)" },
+  { value = "Traditional Chinese", title = "Traditional Chinese (繁體中文)" },
+  { value = "English", title = "English" },
+  { value = "Japanese", title = "Japanese (日本語)" },
+  { value = "Korean", title = "Korean (한국어)" },
+  { value = "French", title = "French (Français)" },
+  { value = "German", title = "German (Deutsch)" },
+  { value = "Spanish", title = "Spanish (Español)" },
+  { value = "Portuguese", title = "Portuguese (Português)" },
+  { value = "Italian", title = "Italian (Italiano)" },
+  { value = "Russian", title = "Russian (Русский)" },
+  { value = "Ukrainian", title = "Ukrainian (Українська)" },
+  { value = "Polish", title = "Polish (Polski)" },
+  { value = "Dutch", title = "Dutch (Nederlands)" },
+  { value = "Turkish", title = "Turkish (Türkçe)" },
+  { value = "Arabic", title = "Arabic (العربية)" },
+  { value = "Hindi", title = "Hindi (हिन्दी)" },
+  { value = "Indonesian", title = "Indonesian (Bahasa Indonesia)" },
+  { value = "Vietnamese", title = "Vietnamese (Tiếng Việt)" },
+  { value = "Thai", title = "Thai (ไทย)" },
+]
+
+[[settings]]
+key = "granularity"
+title = "Translate"
+type = "choice"
+default = "sentence"
+options = [
+  { value = "word", title = "Word" },
+  { value = "sentence", title = "Sentence" },
+  { value = "paragraph", title = "Paragraph" },
+  { value = "block", title = "Text Block" },
+]
+
+[[settings]]
+key = "stream"
+title = "Stream Responses"
+type = "boolean"
+default = true
+
+[[settings]]
+key = "timeout"
+title = "Timeout (Seconds)"
+type = "number"
+default = 30
+minimum = 5
+maximum = 300
+
+[[settings]]
+key = "instructions"
+title = "Additional Instructions"
+type = "text"
+placeholder = "Keep technical terms in English."

@@ -14,8 +14,11 @@ extensions_directory := env_var_or_default("HOVERY_EXTENSIONS_DIR", env_var("HOM
 hovery_install_path := applications_directory / "Hovery.app"
 dictionary_extension := dictionary_directory / "Extension/AppleDictionary.hoveryextension"
 streaming_echo_extension := root / "Examples/StreamingEcho/Extension/StreamingEcho.hoveryextension"
+auto_translator_directory := root / "Examples/AutoTranslator"
+auto_translator_extension := auto_translator_directory / "Extension/AutoTranslator.hoveryextension"
 dictionary_install_path := extensions_directory / "AppleDictionary.hoveryextension"
 streaming_echo_install_path := extensions_directory / "StreamingEcho.hoveryextension"
+auto_translator_install_path := extensions_directory / "AutoTranslator.hoveryextension"
 trash_directory := env_var("HOME") / ".Trash"
 shutdown_poll_attempts := "20"
 shutdown_poll_interval := "0.1"
@@ -55,7 +58,7 @@ build-dictionary-unsigned configuration="Debug": generate-dictionary
     xcodebuild -project "{{dictionary_project}}" -scheme AppleDictionaryExtension -configuration "{{configuration}}" -destination '{{destination}}' -derivedDataPath "{{dictionary_derived_data}}" CODE_SIGNING_ALLOWED=NO build
 
 # Run all unsigned test suites without triggering certificate access.
-test: test-hovery test-dictionary
+test: test-hovery test-dictionary test-translator
 
 # Run the Hovery test suite without signing.
 test-hovery configuration="Debug": generate-hovery
@@ -64,6 +67,10 @@ test-hovery configuration="Debug": generate-hovery
 # Run the Apple Dictionary helper's black-box tests without signing.
 test-dictionary configuration="Debug": generate-dictionary
     xcodebuild -quiet -project "{{dictionary_project}}" -scheme AppleDictionaryHelper -configuration "{{configuration}}" -destination '{{destination}}' -derivedDataPath "{{dictionary_derived_data}}" CODE_SIGNING_ALLOWED=NO test
+
+# Run the Auto Translator's JavaScript tests with Node.js.
+test-translator:
+    node --test "{{auto_translator_directory}}/Tests/translator.test.mjs"
 
 # Build both signed products. The dictionary helper is assembled independently.
 build-all configuration="Debug": (build-hovery configuration) (build-dictionary configuration)
@@ -91,7 +98,7 @@ install-hovery configuration="Release": (build-hovery configuration)
     printf '%s\n' "Installed Hovery ($team_identifier) at $destination_app"
 
 # Build and install all example extensions.
-install-extensions configuration="Release": (install-dictionary configuration) install-streaming-echo
+install-extensions configuration="Release": (install-dictionary configuration) install-streaming-echo install-auto-translator
 
 # Build, verify, and install the Apple Dictionary extension.
 [script]
@@ -126,6 +133,15 @@ install-streaming-echo:
     /usr/bin/ditto "$source_extension" "$destination_extension"
     printf '%s\n' "Installed Streaming Echo at $destination_extension"
 
+# Install the Web-only Auto Translator example extension.
+[script]
+install-auto-translator:
+    source_extension="{{auto_translator_extension}}"
+    destination_extension="{{auto_translator_install_path}}"
+    /bin/mkdir -p "{{extensions_directory}}"
+    /usr/bin/ditto "$source_extension" "$destination_extension"
+    printf '%s\n' "Installed Auto Translator at $destination_extension"
+
 # Build and install Hovery together with all example extensions.
 install-all configuration="Release": (install-hovery configuration) (install-extensions configuration)
 
@@ -158,14 +174,17 @@ uninstall: uninstall-hovery
 # Stop Hovery and move the installed app to Trash.
 uninstall-hovery: kill-hovery (_move-to-trash hovery_install_path)
 
-# Move both installed example extensions to Trash.
-uninstall-extensions: uninstall-dictionary uninstall-streaming-echo
+# Move all installed example extensions to Trash.
+uninstall-extensions: uninstall-dictionary uninstall-streaming-echo uninstall-auto-translator
 
 # Move the installed Apple Dictionary extension to Trash.
 uninstall-dictionary: (_move-to-trash dictionary_install_path)
 
 # Move the installed Streaming Echo extension to Trash.
 uninstall-streaming-echo: (_move-to-trash streaming_echo_install_path)
+
+# Move the installed Auto Translator extension to Trash.
+uninstall-auto-translator: (_move-to-trash auto_translator_install_path)
 
 # Stop Hovery and move the app and installed example extensions to Trash.
 uninstall-all: uninstall-hovery uninstall-extensions

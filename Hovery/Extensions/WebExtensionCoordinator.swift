@@ -14,15 +14,42 @@ final class WebExtensionCoordinator: ObservableObject {
         let isEnabled: Bool
         let hasNativeCode: Bool
         let isNativeCodeTrusted: Bool
+        var settings: [WebExtensionSettingDescriptor] = []
+        /// Titles of required settings that do not have a usable value yet.
+        var missingRequiredSettings: [String] = []
         let errorDescription: String?
     }
 
+    struct SettingsForm: Identifiable, Equatable {
+        let identifier: String
+        let name: String
+        let descriptors: [WebExtensionSettingDescriptor]
+        let values: [String: WebExtensionSettingValue]
+
+        var id: String { identifier }
+    }
+
+    enum SettingsError: LocalizedError {
+        case unknownExtension(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .unknownExtension(let identifier):
+                "The extension \(identifier) is no longer installed."
+            }
+        }
+    }
+
     @Published private(set) var extensions: [ExtensionStatus] = []
+    /// Called when the user asks to edit an extension's settings from outside the Extensions window.
+    var settingsRequestHandler: ((String) -> Void)?
 
     private let settings: HoverySettings
+    private let secretStore: any WebExtensionSecretStoring
     private let panelController = WebExtensionResultsPanelController()
     private let selectionOverlay = HighlightOverlayController()
     private let logger = Logger(subsystem: "app.hovery.Hovery", category: "WebExtensions")
+    private var descriptorsByIdentifier: [String: WebExtensionDescriptor] = [:]
     private var runtimes: [WebExtensionRuntimeController] = []
     private var configurationCancellable: AnyCancellable?
     private var currentRequestKey: String?
@@ -33,8 +60,9 @@ final class WebExtensionCoordinator: ObservableObject {
     private var defaultAvoidanceRect: CGRect?
     private var sourceOverlaySuspended = false
 
-    init(settings: HoverySettings) {
+    init(settings: HoverySettings, secretStore: (any WebExtensionSecretStoring)? = nil) {
         self.settings = settings
+        self.secretStore = secretStore ?? Self.defaultSecretStore()
         panelController.selectionDidChange = { [weak self] _ in
             self?.refreshSelectionOverlay()
         }
@@ -42,6 +70,9 @@ final class WebExtensionCoordinator: ObservableObject {
             if isPinned {
                 self?.clearPinnedSelectionOverlay()
             }
+        }
+        panelController.settingsRequested = { [weak self] identifier in
+            self?.requestSettings(for: identifier)
         }
         configurationCancellable = Publishers.CombineLatest(
             settings.$extensionConfiguration,
@@ -101,6 +132,54 @@ final class WebExtensionCoordinator: ObservableObject {
             NSWorkspace.shared.open(url)
         } catch {
             logger.error("Could not open extensions directory: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func requestSettings(for identifier: String) {
+        settingsRequestHandler?(identifier)
+    }
+
+    /// The current values of an installed extension's settings, including secrets.
+    func settingsForm(for identifier: String) -> SettingsForm? {
+        guard let descriptor = descriptorsByIdentifier[identifier], !descriptor.settings.isEmpty else {
+            return nil
+        }
+        return SettingsForm(
+            identifier: identifier,
+            name: descriptor.name,
+            descriptors: descriptor.settings,
+            values: resolvedSettings(for: descriptor, configuration: settings.extensionConfiguration).values
+        )
+    }
+
+    /// Stores secrets in the secret store and all other values that differ from their defaults in
+    /// `extensions.toml`, then reloads the extensions so the new settings and permissions apply.
+    func saveSettings(_ values: [String: WebExtensionSettingValue], for identifier: String) throws {
+        guard let descriptor = descriptorsByIdentifier[identifier] else {
+            throw SettingsError.unknownExtension(identifier)
+        }
+        for setting in descriptor.settings where setting.type == .secret {
+            let key = WebExtensionSecretKey(extensionIdentifier: identifier, settingKey: setting.key)
+            let secret = setting.normalized(values[setting.key]).stringValue ?? ""
+            guard secret != secretStore.secret(for: key) ?? "" else { continue }
+            try secretStore.setSecret(
+                secret.isEmpty ? nil : secret,
+                for: key,
+                label: "Hovery – \(descriptor.name): \(setting.title)"
+            )
+        }
+
+        let overrides = WebExtensionSettingDescriptor.storedOverrides(
+            for: descriptor.settings,
+            values: values
+        )
+        if overrides == settings.extensionConfiguration.settings[identifier] ?? [:] {
+            // Only secrets changed, so the configuration file does not trigger a reload.
+            reloadExtensions()
+        } else {
+            settings.updateExtensions { configuration in
+                configuration.settings[identifier] = overrides.isEmpty ? nil : overrides
+            }
         }
     }
 
@@ -224,12 +303,14 @@ final class WebExtensionCoordinator: ObservableObject {
         selectionOverlay.hide()
 
         let directoryURL = extensionDirectoryURL()
+        descriptorsByIdentifier = [:]
         do {
             let entries = try WebExtensionCatalog.inspect(in: directoryURL)
             let disabled = Set(webExtensions.disabled)
             let trustedNative = Set(webExtensions.trustedNative)
             var identifiers = Set<String>()
             var statuses: [ExtensionStatus] = []
+            var resolvedSettingsByIdentifier: [String: WebExtensionResolvedSettings] = [:]
             let descriptors = entries.compactMap { entry -> WebExtensionDescriptor? in
                 guard let descriptor = entry.descriptor else {
                     statuses.append(ExtensionStatus(
@@ -262,6 +343,9 @@ final class WebExtensionCoordinator: ObservableObject {
                 }
                 let hasNativeCode = descriptor.nativeHost != nil
                 let isNativeCodeTrusted = !hasNativeCode || trustedNative.contains(descriptor.identifier)
+                let extensionSettings = resolvedSettings(for: descriptor, configuration: webExtensions)
+                resolvedSettingsByIdentifier[descriptor.identifier] = extensionSettings
+                descriptorsByIdentifier[descriptor.identifier] = descriptor
                 statuses.append(ExtensionStatus(
                     id: entry.packageURL.path,
                     identifier: descriptor.identifier,
@@ -271,6 +355,10 @@ final class WebExtensionCoordinator: ObservableObject {
                     isEnabled: !disabled.contains(descriptor.identifier) && isNativeCodeTrusted,
                     hasNativeCode: hasNativeCode,
                     isNativeCodeTrusted: isNativeCodeTrusted,
+                    settings: descriptor.settings,
+                    missingRequiredSettings: extensionSettings.missingRequiredKeys.compactMap { key in
+                        descriptor.settings.first { $0.key == key }?.title
+                    },
                     errorDescription: nil
                 ))
                 return descriptor
@@ -288,6 +376,7 @@ final class WebExtensionCoordinator: ObservableObject {
                 }
                 let runtime = WebExtensionRuntimeController(
                     descriptor: descriptor,
+                    settings: resolvedSettingsByIdentifier[descriptor.identifier],
                     nativeConfiguration: webExtensions
                 )
                 runtime.contentHeightDidChange = { [weak self] requestID, height in
@@ -322,6 +411,31 @@ final class WebExtensionCoordinator: ObservableObject {
 
     private func extensionDirectoryURL() -> URL {
         settings.extensionsDirectoryURL
+    }
+
+    private func resolvedSettings(
+        for descriptor: WebExtensionDescriptor,
+        configuration: WebExtensionConfiguration
+    ) -> WebExtensionResolvedSettings {
+        let secrets = descriptor.settings.reduce(into: [String: String]()) { secrets, setting in
+            guard setting.type == .secret else { return }
+            secrets[setting.key] = secretStore.secret(for: WebExtensionSecretKey(
+                extensionIdentifier: descriptor.identifier,
+                settingKey: setting.key
+            ))
+        }
+        return WebExtensionResolvedSettings(
+            descriptors: descriptor.settings,
+            storedValues: configuration.settings[descriptor.identifier] ?? [:],
+            secrets: secrets
+        )
+    }
+
+    private static func defaultSecretStore() -> any WebExtensionSecretStoring {
+        // The test host loads the user's real configuration; tests must never read their Keychain.
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
+            ? KeychainWebExtensionSecretStore()
+            : InMemoryWebExtensionSecretStore()
     }
 
     private static func requestPayload(
@@ -604,6 +718,7 @@ struct ResultsPanelLayout: Equatable, Sendable {
 private final class WebExtensionResultsPanelController: NSWindowController {
     var selectionDidChange: ((String) -> Void)?
     var pinStateDidChange: ((Bool) -> Void)?
+    var settingsRequested: ((String) -> Void)?
     var selectedIdentifier: String? {
         resultsViewController.selectedIdentifier
     }
@@ -656,6 +771,9 @@ private final class WebExtensionResultsPanelController: NSWindowController {
             self?.isPinned = isPinned
             self?.dismissOnPointerExit = !isPinned
             self?.pinStateDidChange?(isPinned)
+        }
+        resultsViewController.settingsRequested = { [weak self] identifier in
+            self?.settingsRequested?(identifier)
         }
     }
 
@@ -859,14 +977,20 @@ private final class WebExtensionResultsPanelController: NSWindowController {
 
 @MainActor
 private final class WebExtensionResultsViewController: NSViewController {
+    private enum Layout {
+        static let toolbarButtonSpacing: CGFloat = 8
+    }
+
     var selectionDidChange: ((String) -> Void)?
     var pinStateDidChange: ((Bool) -> Void)?
+    var settingsRequested: ((String) -> Void)?
     private(set) var selectedIdentifier: String?
     private(set) var effectiveTabBarHeight: CGFloat = 0
 
     private let tabBar = DraggableHeaderView()
     private let tabStack = NSStackView()
     private let tabSeparator = NSBox()
+    private let settingsButton = NSButton()
     private let pinButton = NSButton()
     private let contentContainer = ProviderContentView()
     private var tabHeightConstraint: NSLayoutConstraint!
@@ -898,6 +1022,16 @@ private final class WebExtensionResultsViewController: NSViewController {
         tabStack.translatesAutoresizingMaskIntoConstraints = false
         tabSeparator.boxType = .separator
         tabSeparator.translatesAutoresizingMaskIntoConstraints = false
+        settingsButton.translatesAutoresizingMaskIntoConstraints = false
+        settingsButton.image = NSImage(
+            systemSymbolName: "gearshape",
+            accessibilityDescription: "Extension Settings"
+        )
+        settingsButton.isBordered = false
+        settingsButton.target = self
+        settingsButton.action = #selector(openSettings(_:))
+        settingsButton.toolTip = "Extension Settings"
+        settingsButton.isHidden = true
         pinButton.translatesAutoresizingMaskIntoConstraints = false
         pinButton.image = NSImage(systemSymbolName: "pin", accessibilityDescription: "Pin Results")
         pinButton.isBordered = false
@@ -908,6 +1042,7 @@ private final class WebExtensionResultsViewController: NSViewController {
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
         tabBar.addSubview(tabSeparator)
         tabBar.addSubview(tabStack)
+        tabBar.addSubview(settingsButton)
         tabBar.addSubview(pinButton)
         effectView.addSubview(tabBar)
         effectView.addSubview(contentContainer)
@@ -917,7 +1052,7 @@ private final class WebExtensionResultsViewController: NSViewController {
             greaterThanOrEqualTo: tabBar.leadingAnchor
         )
         tabTrailingConstraint = tabStack.trailingAnchor.constraint(
-            lessThanOrEqualTo: pinButton.leadingAnchor
+            lessThanOrEqualTo: settingsButton.leadingAnchor
         )
         pinTrailingConstraint = pinButton.trailingAnchor.constraint(equalTo: tabBar.trailingAnchor)
         NSLayoutConstraint.activate([
@@ -933,6 +1068,11 @@ private final class WebExtensionResultsViewController: NSViewController {
             tabSeparator.leadingAnchor.constraint(equalTo: tabBar.leadingAnchor),
             tabSeparator.trailingAnchor.constraint(equalTo: tabBar.trailingAnchor),
             tabSeparator.bottomAnchor.constraint(equalTo: tabBar.bottomAnchor),
+            settingsButton.trailingAnchor.constraint(
+                equalTo: pinButton.leadingAnchor,
+                constant: -Layout.toolbarButtonSpacing
+            ),
+            settingsButton.centerYAnchor.constraint(equalTo: tabBar.centerYAnchor),
             pinTrailingConstraint,
             pinButton.centerYAnchor.constraint(equalTo: tabBar.centerYAnchor),
             contentContainer.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
@@ -989,6 +1129,7 @@ private final class WebExtensionResultsViewController: NSViewController {
         } else {
             selectedIdentifier = nil
             visibleRuntime = nil
+            settingsButton.isHidden = true
         }
     }
 
@@ -1004,6 +1145,11 @@ private final class WebExtensionResultsViewController: NSViewController {
         let pinned = sender.state == .on
         updatePinAppearance(pinned: pinned)
         pinStateDidChange?(pinned)
+    }
+
+    @objc private func openSettings(_ sender: NSButton) {
+        guard let selectedIdentifier else { return }
+        settingsRequested?(selectedIdentifier)
     }
 
     func setPinned(_ pinned: Bool) {
@@ -1040,6 +1186,9 @@ private final class WebExtensionResultsViewController: NSViewController {
         ])
         visibleRuntime = runtime
         selectedIdentifier = runtime.descriptor.identifier
+        settingsButton.isHidden = runtime.descriptor.settings.isEmpty
+        settingsButton.toolTip = "\(runtime.descriptor.name) Settings"
+        settingsButton.setAccessibilityLabel(settingsButton.toolTip)
     }
 }
 

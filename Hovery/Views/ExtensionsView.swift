@@ -1,17 +1,26 @@
 import AppKit
 import SwiftUI
 
+@MainActor
+final class ExtensionsWindowModel: ObservableObject {
+    /// The extension whose settings sheet is open.
+    @Published var editingSettingsIdentifier: String?
+}
+
 struct ExtensionsView: View {
     private enum Layout {
         static let rowSpacing: CGFloat = 4
+        static let controlSpacing: CGFloat = 10
         static let sectionSpacing: CGFloat = 18
         static let contentPadding: CGFloat = 24
         static let minimumListHeight: CGFloat = 220
-        static let windowWidth: CGFloat = 520
-        static let windowHeight: CGFloat = 430
+        // Large enough to contain the extension settings sheet.
+        static let windowWidth: CGFloat = 540
+        static let windowHeight: CGFloat = 500
     }
 
     @ObservedObject var manager: WebExtensionCoordinator
+    @ObservedObject var model: ExtensionsWindowModel
     let dismiss: () -> Void
     @State private var pendingNativeExtension: WebExtensionCoordinator.ExtensionStatus?
 
@@ -75,6 +84,26 @@ struct ExtensionsView: View {
         } message: { extensionStatus in
             Text("\(extensionStatus.name) contains native code that runs with your account’s access. Only allow it if you trust its source.")
         }
+        .sheet(item: editingSettingsForm) { form in
+            ExtensionSettingsView(
+                form: form,
+                save: { values in
+                    try manager.saveSettings(values, for: form.identifier)
+                },
+                dismiss: { model.editingSettingsIdentifier = nil }
+            )
+        }
+    }
+
+    private var editingSettingsForm: Binding<WebExtensionCoordinator.SettingsForm?> {
+        Binding(
+            get: { model.editingSettingsIdentifier.flatMap(manager.settingsForm(for:)) },
+            set: { form in
+                if form == nil {
+                    model.editingSettingsIdentifier = nil
+                }
+            }
+        )
     }
 
     @ViewBuilder
@@ -97,22 +126,42 @@ struct ExtensionsView: View {
                             .font(.caption)
                             .foregroundStyle(.orange)
                     }
+                    if !status.missingRequiredSettings.isEmpty {
+                        Label(
+                            "Needs Setup: \(status.missingRequiredSettings.joined(separator: ", "))",
+                            systemImage: "exclamationmark.circle"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    }
                 }
             }
             Spacer()
             if let identifier = status.identifier {
-                Toggle("Enabled", isOn: Binding(
-                    get: { status.isEnabled },
-                    set: { enabled in
-                        if enabled, status.hasNativeCode, !status.isNativeCodeTrusted {
-                            pendingNativeExtension = status
-                        } else {
-                            manager.setEnabled(enabled, identifier: identifier)
+                HStack(spacing: Layout.controlSpacing) {
+                    if !status.settings.isEmpty {
+                        Button {
+                            model.editingSettingsIdentifier = identifier
+                        } label: {
+                            Image(systemName: "gearshape")
                         }
+                        .buttonStyle(.borderless)
+                        .help("\(status.name) Settings")
+                        .accessibilityLabel("\(status.name) Settings")
                     }
-                ))
-                .labelsHidden()
-                .toggleStyle(.switch)
+                    Toggle("Enabled", isOn: Binding(
+                        get: { status.isEnabled },
+                        set: { enabled in
+                            if enabled, status.hasNativeCode, !status.isNativeCodeTrusted {
+                                pendingNativeExtension = status
+                            } else {
+                                manager.setEnabled(enabled, identifier: identifier)
+                            }
+                        }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                }
             } else {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.red)
@@ -129,6 +178,8 @@ final class ExtensionsWindowController: NSWindowController {
         static let title = "Extensions"
     }
 
+    private let model: ExtensionsWindowModel
+
     init(manager: WebExtensionCoordinator) {
         let window = NSWindow(
             contentRect: .zero,
@@ -136,6 +187,8 @@ final class ExtensionsWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
+        let model = ExtensionsWindowModel()
+        self.model = model
         super.init(window: window)
 
         window.title = WindowLayout.title
@@ -143,6 +196,7 @@ final class ExtensionsWindowController: NSWindowController {
         window.center()
         window.contentViewController = NSHostingController(rootView: ExtensionsView(
             manager: manager,
+            model: model,
             dismiss: { [weak window] in window?.close() }
         ))
     }
@@ -150,7 +204,11 @@ final class ExtensionsWindowController: NSWindowController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { nil }
 
-    func present() {
+    /// Shows the window, optionally opening the settings of the extension with `identifier`.
+    func present(settingsFor identifier: String? = nil) {
+        if let identifier {
+            model.editingSettingsIdentifier = identifier
+        }
         NSApp.activate(ignoringOtherApps: true)
         showWindow(nil)
         window?.center()
