@@ -35,9 +35,19 @@ final class WebExtensionCoordinator: ObservableObject {
         var errorDescription: String? {
             switch self {
             case .unknownExtension(let identifier):
-                "The extension \(identifier) is no longer installed."
+                String(localized: "The extension \(identifier) is no longer installed.")
             }
         }
+    }
+
+    /// The hover shown in the results panel, kept so that an extension whose tab is selected
+    /// later can still receive it.
+    private struct HoverRequest {
+        let id: String
+        let hierarchy: HoverHierarchy
+        let selectionIDsByLevel: [SemanticLevel: String]
+        let pointer: CGPoint
+        let application: NSRunningApplication?
     }
 
     @Published private(set) var extensions: [ExtensionStatus] = []
@@ -46,6 +56,8 @@ final class WebExtensionCoordinator: ObservableObject {
 
     private let settings: HoverySettings
     private let secretStore: any WebExtensionSecretStoring
+    /// Chooses the language of extensions' text; `nil` follows the user's language preferences.
+    private let preferredLanguages: [String]?
     private let panelController = WebExtensionResultsPanelController()
     private let selectionOverlay = HighlightOverlayController()
     private let logger = Logger(subsystem: "app.hovery.Hovery", category: "WebExtensions")
@@ -53,18 +65,26 @@ final class WebExtensionCoordinator: ObservableObject {
     private var runtimes: [WebExtensionRuntimeController] = []
     private var configurationCancellable: AnyCancellable?
     private var currentRequestKey: String?
-    private var currentRequestID: String?
+    private var currentRequest: HoverRequest?
+    /// Extensions that received `currentRequest`. Only the selected tab's extension receives a
+    /// request, so hidden extensions don't call services for results nobody sees.
+    private var presentedExtensionIdentifiers = Set<String>()
     private var currentSelectionsByID: [String: SemanticSelection] = [:]
     private var currentDisplayID: CGDirectDisplayID?
     private var overlayItemsByExtension: [String: [WebExtensionOverlayItem]] = [:]
     private var defaultAvoidanceRect: CGRect?
     private var sourceOverlaySuspended = false
 
-    init(settings: HoverySettings, secretStore: (any WebExtensionSecretStoring)? = nil) {
+    init(
+        settings: HoverySettings,
+        secretStore: (any WebExtensionSecretStoring)? = nil,
+        preferredLanguages: [String]? = nil
+    ) {
         self.settings = settings
         self.secretStore = secretStore ?? Self.defaultSecretStore()
+        self.preferredLanguages = preferredLanguages
         panelController.selectionDidChange = { [weak self] _ in
-            self?.refreshSelectionOverlay()
+            self?.selectedExtensionDidChange()
         }
         panelController.pinStateDidChange = { [weak self] isPinned in
             if isPinned {
@@ -92,6 +112,33 @@ final class WebExtensionCoordinator: ObservableObject {
 
     var resultsAreVisibleForTesting: Bool {
         panelController.isVisible
+    }
+
+    var selectedExtensionIdentifierForTesting: String? {
+        panelController.selectedIdentifier
+    }
+
+    var resultsWindowForTesting: NSWindow? {
+        panelController.window
+    }
+
+    func selectTabForTesting(at index: Int) {
+        panelController.selectTab(at: index)
+    }
+
+    func webViewForTesting(identifier: String) -> NSView? {
+        runtimes.first { $0.descriptor.identifier == identifier }?.view
+    }
+
+    /// Whether a key press is a tab shortcut, which the results panel takes instead of the app
+    /// under the pointer.
+    func isTabShortcut(keyCode: Int64, flags: CGEventFlags) -> Bool {
+        panelController.isTabShortcut(keyCode: keyCode, flags: flags)
+    }
+
+    /// Handles a key press as the event tap does while the results panel is visible.
+    func handleTabShortcutForTesting(keyCode: Int64, flags: CGEventFlags) -> Bool {
+        panelController.handleTabShortcut(keyCode: keyCode, flags: flags)
     }
 
     func reloadExtensions() {
@@ -207,11 +254,17 @@ final class WebExtensionCoordinator: ObservableObject {
         currentRequestKey = requestKey
         sourceOverlaySuspended = false
 
-        let requestID = UUID().uuidString
         let selectionIDsByLevel = Dictionary(uniqueKeysWithValues: hierarchy.selections.keys.map {
             ($0, UUID().uuidString)
         })
-        currentRequestID = requestID
+        currentRequest = HoverRequest(
+            id: UUID().uuidString,
+            hierarchy: hierarchy,
+            selectionIDsByLevel: selectionIDsByLevel,
+            pointer: pointer,
+            application: NSWorkspace.shared.frontmostApplication
+        )
+        presentedExtensionIdentifiers = []
         currentSelectionsByID = Dictionary(uniqueKeysWithValues: hierarchy.selections.compactMap { level, selection in
             selectionIDsByLevel[level].map { ($0, selection) }
         })
@@ -226,34 +279,21 @@ final class WebExtensionCoordinator: ObservableObject {
             ? debugAvoidanceRect
             : anchorSelection.boundingRect
 
+        panelController.shortcutModifiers = settings.configuration.interaction.requiredModifiers
         panelController.beginRequest(
             anchorRect: anchorSelection.boundingRect,
             avoidanceRect: defaultAvoidanceRect ?? anchorSelection.boundingRect,
             displayID: hierarchy.displayID,
             configuration: presentation
         )
-
-        let application = NSWorkspace.shared.frontmostApplication
-        for runtime in runtimes {
-            guard let input = hierarchy.selection(for: runtime.descriptor.preferredInput.semanticLevel) else {
-                runtime.cancel()
-                continue
-            }
-            runtime.present(request: Self.requestPayload(
-                id: requestID,
-                input: input,
-                hierarchy: hierarchy,
-                selectionIDsByLevel: selectionIDsByLevel,
-                pointer: pointer,
-                application: application
-            ))
-        }
+        presentCurrentRequestToSelectedExtension()
     }
 
     func hide() {
         guard !panelController.isPinned else { return }
         currentRequestKey = nil
-        currentRequestID = nil
+        currentRequest = nil
+        presentedExtensionIdentifiers = []
         currentSelectionsByID = [:]
         currentDisplayID = nil
         overlayItemsByExtension = [:]
@@ -293,7 +333,8 @@ final class WebExtensionCoordinator: ObservableObject {
         runtimes.forEach { $0.unmount() }
         runtimes = []
         currentRequestKey = nil
-        currentRequestID = nil
+        currentRequest = nil
+        presentedExtensionIdentifiers = []
         currentSelectionsByID = [:]
         currentDisplayID = nil
         overlayItemsByExtension = [:]
@@ -305,7 +346,10 @@ final class WebExtensionCoordinator: ObservableObject {
         let directoryURL = extensionDirectoryURL()
         descriptorsByIdentifier = [:]
         do {
-            let entries = try WebExtensionCatalog.inspect(in: directoryURL)
+            let entries = try WebExtensionCatalog.inspect(
+                in: directoryURL,
+                preferredLanguages: preferredLanguages ?? Locale.preferredLanguages
+            )
             let disabled = Set(webExtensions.disabled)
             let trustedNative = Set(webExtensions.trustedNative)
             var identifiers = Set<String>()
@@ -337,7 +381,7 @@ final class WebExtensionCoordinator: ObservableObject {
                         isEnabled: false,
                         hasNativeCode: descriptor.nativeHost != nil,
                         isNativeCodeTrusted: false,
-                        errorDescription: "Another extension uses \(descriptor.identifier)."
+                        errorDescription: String(localized: "Another extension uses \(descriptor.identifier).")
                     ))
                     return nil
                 }
@@ -407,6 +451,46 @@ final class WebExtensionCoordinator: ObservableObject {
             panelController.configure(runtimes: [], configuration: presentation)
             logger.error("Could not load Web extensions: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    private var currentRequestID: String? {
+        currentRequest?.id
+    }
+
+    /// Sends the current hover to the extension whose tab is visible, unless it already has it.
+    private func presentCurrentRequestToSelectedExtension() {
+        guard let request = currentRequest,
+              let identifier = panelController.selectedIdentifier,
+              !presentedExtensionIdentifiers.contains(identifier),
+              let runtime = runtimes.first(where: { $0.descriptor.identifier == identifier }) else { return }
+        presentedExtensionIdentifiers.insert(identifier)
+        guard let input = request.hierarchy.selection(for: runtime.descriptor.preferredInput.semanticLevel) else {
+            runtime.cancel()
+            return
+        }
+        runtime.present(request: Self.requestPayload(
+            id: request.id,
+            input: input,
+            hierarchy: request.hierarchy,
+            selectionIDsByLevel: request.selectionIDsByLevel,
+            pointer: request.pointer,
+            application: request.application
+        ))
+    }
+
+    /// Sends the hover to the newly visible extension. Work that hidden extensions haven't
+    /// finished stops and starts over when their tab is selected again; finished results stay.
+    private func selectedExtensionDidChange() {
+        let selectedIdentifier = panelController.selectedIdentifier
+        for runtime in runtimes where runtime.descriptor.identifier != selectedIdentifier {
+            let identifier = runtime.descriptor.identifier
+            guard presentedExtensionIdentifiers.contains(identifier),
+                  runtime.completedRequestID != currentRequestID else { continue }
+            presentedExtensionIdentifiers.remove(identifier)
+            runtime.cancel()
+        }
+        presentCurrentRequestToSelectedExtension()
+        refreshSelectionOverlay()
     }
 
     private func extensionDirectoryURL() -> URL {
@@ -725,10 +809,21 @@ private final class WebExtensionResultsPanelController: NSWindowController {
     private(set) var isPinned = false
     private(set) var dismissOnPointerExit = false
     var isVisible: Bool { window?.isVisible == true }
+    /// Holding these while pressing 1–9 selects a tab.
+    var shortcutModifiers: [RecognitionModifier] = [] {
+        didSet {
+            guard shortcutModifiers != oldValue else { return }
+            resultsViewController.shortcutModifiers = shortcutModifiers
+        }
+    }
 
     private let resultsViewController = WebExtensionResultsViewController()
+    private let shortcutMonitor = ResultsTabShortcutMonitor()
     private var presentation = HoveryConfiguration.ResultsPresentation()
     private var contentHeights: [String: CGFloat] = [:]
+    /// A tab that was just selected. Its extension starts working only then, so its first
+    /// reported height may be smaller than the panel.
+    private var newlySelectedIdentifier: String?
     private var currentHeight: CGFloat = 0
     private var anchorRect: CGRect?
     private var avoidanceRect: CGRect?
@@ -764,6 +859,7 @@ private final class WebExtensionResultsPanelController: NSWindowController {
         panel.isReleasedWhenClosed = false
 
         resultsViewController.selectionDidChange = { [weak self] identifier in
+            self?.newlySelectedIdentifier = identifier
             self?.showContentHeight(for: identifier, allowShrink: true)
             self?.selectionDidChange?(identifier)
         }
@@ -774,6 +870,15 @@ private final class WebExtensionResultsPanelController: NSWindowController {
         }
         resultsViewController.settingsRequested = { [weak self] identifier in
             self?.settingsRequested?(identifier)
+        }
+        shortcutMonitor.keyDownHandler = { [weak self] keyCode, flags in
+            self?.handleTabShortcut(keyCode: keyCode, flags: flags) ?? false
+        }
+        shortcutMonitor.modifierFlagsDidChange = { [weak self] flags in
+            self?.updateShortcuts(flags: flags)
+        }
+        panel.keyDownHandler = { [weak self] event in
+            self?.handleKeyDown(event) ?? false
         }
     }
 
@@ -806,16 +911,59 @@ private final class WebExtensionResultsPanelController: NSWindowController {
         dismissOnPointerExit = false
         verticalPlacement = nil
         contentHeights = [:]
+        newlySelectedIdentifier = nil
         currentHeight = CGFloat(configuration.initialHeight)
         updateCornerRadius()
         resizeAndPosition()
         window?.orderFrontRegardless()
+        shortcutMonitor.watchModifiers()
+        updateShortcuts(flags: NSEvent.modifierFlags)
     }
 
     func updateContentHeight(_ contentHeight: CGFloat, for identifier: String) {
         contentHeights[identifier] = contentHeight
         guard resultsViewController.selectedIdentifier == identifier else { return }
-        showContentHeight(for: identifier, allowShrink: false)
+        let allowShrink = newlySelectedIdentifier == identifier
+        newlySelectedIdentifier = nil
+        showContentHeight(for: identifier, allowShrink: allowShrink)
+    }
+
+    func selectTab(at index: Int) {
+        resultsViewController.selectTab(at: index)
+    }
+
+    /// Whether the recognition modifiers and a number key select a tab of the visible panel.
+    func isTabShortcut(keyCode: Int64, flags: CGEventFlags) -> Bool {
+        guard isVisible,
+              ResultsTabShortcut.matches(flags, modifiers: shortcutModifiers),
+              let index = ResultsTabShortcut.tabIndex(forKeyCode: keyCode) else { return false }
+        return resultsViewController.tabCount > 1 && index < resultsViewController.tabCount
+    }
+
+    func handleTabShortcut(keyCode: Int64, flags: CGEventFlags) -> Bool {
+        guard isTabShortcut(keyCode: keyCode, flags: flags),
+              let index = ResultsTabShortcut.tabIndex(forKeyCode: keyCode) else { return false }
+        return resultsViewController.selectTab(at: index)
+    }
+
+    /// Once the user clicks the panel, it is key and plain number keys select tabs as well,
+    /// unless the extension's page used them.
+    private func handleKeyDown(_ event: NSEvent) -> Bool {
+        let flags = event.modifierFlags
+        guard ResultsTabShortcut.modifiers(in: flags).isEmpty
+                || ResultsTabShortcut.matches(flags, modifiers: shortcutModifiers),
+              let index = ResultsTabShortcut.tabIndex(forKeyCode: Int64(event.keyCode)) else { return false }
+        return resultsViewController.selectTab(at: index)
+    }
+
+    /// Number keys select tabs, and tabs show their numbers, only while the shortcut's modifiers
+    /// are held.
+    private func updateShortcuts(flags: NSEvent.ModifierFlags) {
+        let isActive = isVisible
+            && resultsViewController.tabCount > 1
+            && ResultsTabShortcut.matches(flags, modifiers: shortcutModifiers)
+        resultsViewController.showsShortcutHints = isActive
+        shortcutMonitor.setCapturingKeys(isActive)
     }
 
     func updateAvoidanceRect(_ avoidanceRect: CGRect?) {
@@ -828,6 +976,8 @@ private final class WebExtensionResultsPanelController: NSWindowController {
         isPinned = false
         dismissOnPointerExit = false
         resultsViewController.setPinned(false)
+        shortcutMonitor.stop()
+        resultsViewController.showsShortcutHints = false
         window?.orderOut(nil)
         anchorRect = nil
         avoidanceRect = nil
@@ -984,8 +1134,20 @@ private final class WebExtensionResultsViewController: NSViewController {
     var selectionDidChange: ((String) -> Void)?
     var pinStateDidChange: ((Bool) -> Void)?
     var settingsRequested: ((String) -> Void)?
+    var shortcutModifiers: [RecognitionModifier] = [] {
+        didSet { updateTabShortcuts() }
+    }
+    /// Shows each tab's number while the recognition modifiers are held, which is when the
+    /// number keys select tabs.
+    var showsShortcutHints = false {
+        didSet {
+            guard showsShortcutHints != oldValue else { return }
+            updateTabShortcuts()
+        }
+    }
     private(set) var selectedIdentifier: String?
     private(set) var effectiveTabBarHeight: CGFloat = 0
+    var tabCount: Int { runtimes.count }
 
     private let tabBar = DraggableHeaderView()
     private let tabStack = NSStackView()
@@ -1025,20 +1187,20 @@ private final class WebExtensionResultsViewController: NSViewController {
         settingsButton.translatesAutoresizingMaskIntoConstraints = false
         settingsButton.image = NSImage(
             systemSymbolName: "gearshape",
-            accessibilityDescription: "Extension Settings"
+            accessibilityDescription: String(localized: "Extension Settings")
         )
         settingsButton.isBordered = false
         settingsButton.target = self
         settingsButton.action = #selector(openSettings(_:))
-        settingsButton.toolTip = "Extension Settings"
+        settingsButton.toolTip = String(localized: "Extension Settings")
         settingsButton.isHidden = true
         pinButton.translatesAutoresizingMaskIntoConstraints = false
-        pinButton.image = NSImage(systemSymbolName: "pin", accessibilityDescription: "Pin Results")
+        pinButton.image = NSImage(systemSymbolName: "pin", accessibilityDescription: String(localized: "Pin Results"))
         pinButton.isBordered = false
         pinButton.setButtonType(.toggle)
         pinButton.target = self
         pinButton.action = #selector(togglePinned(_:))
-        pinButton.toolTip = "Pin Results"
+        pinButton.toolTip = String(localized: "Pin Results")
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
         tabBar.addSubview(tabSeparator)
         tabBar.addSubview(tabStack)
@@ -1123,9 +1285,12 @@ private final class WebExtensionResultsViewController: NSViewController {
             : max(CGFloat(configuration.tabBarHeight), intrinsicTabHeight)
         tabHeightConstraint.constant = effectiveTabBarHeight
         tabBar.isHidden = runtimes.isEmpty
-        if let first = runtimes.first {
-            updateSelectedTab(index: 0)
-            show(runtime: first)
+        updateTabShortcuts()
+        // Reloading, for example after saving an extension's settings, keeps the tab the user chose.
+        let selectedIndex = runtimes.firstIndex { $0.descriptor.identifier == selectedIdentifier } ?? 0
+        if runtimes.indices.contains(selectedIndex) {
+            updateSelectedTab(index: selectedIndex)
+            show(runtime: runtimes[selectedIndex])
         } else {
             selectedIdentifier = nil
             visibleRuntime = nil
@@ -1133,12 +1298,30 @@ private final class WebExtensionResultsViewController: NSViewController {
         }
     }
 
-    @objc private func selectTab(_ sender: ProviderTabButton) {
-        guard runtimes.indices.contains(sender.tag) else { return }
-        let runtime = runtimes[sender.tag]
-        updateSelectedTab(index: sender.tag)
+    /// Selects a tab as clicking it does. Returns `false` when there is no other tab to switch to.
+    @discardableResult
+    func selectTab(at index: Int) -> Bool {
+        guard runtimes.count > 1, runtimes.indices.contains(index) else { return false }
+        let runtime = runtimes[index]
+        guard runtime.descriptor.identifier != selectedIdentifier else { return true }
+        updateSelectedTab(index: index)
         show(runtime: runtime)
         selectionDidChange?(runtime.descriptor.identifier)
+        return true
+    }
+
+    @objc private func selectTab(_ sender: ProviderTabButton) {
+        selectTab(at: sender.tag)
+    }
+
+    private func updateTabShortcuts() {
+        let symbols = shortcutModifiers.map(\.symbol).joined()
+        let hasShortcuts = tabButtons.count > 1 && !symbols.isEmpty
+        for (index, button) in tabButtons.enumerated() {
+            let number = hasShortcuts && index < ResultsTabShortcut.tabLimit ? index + 1 : nil
+            button.setShortcut(number: number, visible: showsShortcutHints)
+            button.toolTip = number.map { "\(button.providerTitle) (\(symbols)\($0))" } ?? button.providerTitle
+        }
     }
 
     @objc private func togglePinned(_ sender: NSButton) {
@@ -1161,9 +1344,9 @@ private final class WebExtensionResultsViewController: NSViewController {
     private func updatePinAppearance(pinned: Bool) {
         pinButton.image = NSImage(
             systemSymbolName: pinned ? "pin.fill" : "pin",
-            accessibilityDescription: pinned ? "Unpin Results" : "Pin Results"
+            accessibilityDescription: pinned ? String(localized: "Unpin Results") : String(localized: "Pin Results")
         )
-        pinButton.toolTip = pinned ? "Unpin Results" : "Pin Results"
+        pinButton.toolTip = pinned ? String(localized: "Unpin Results") : String(localized: "Pin Results")
         tabBar.isDraggingEnabled = pinned
     }
 
@@ -1187,18 +1370,27 @@ private final class WebExtensionResultsViewController: NSViewController {
         visibleRuntime = runtime
         selectedIdentifier = runtime.descriptor.identifier
         settingsButton.isHidden = runtime.descriptor.settings.isEmpty
-        settingsButton.toolTip = "\(runtime.descriptor.name) Settings"
+        settingsButton.toolTip = String(localized: "\(runtime.descriptor.name) Settings")
         settingsButton.setAccessibilityLabel(settingsButton.toolTip)
     }
 }
 
 @MainActor
 private final class ProviderTabButton: NSButton {
+    private enum ShortcutBadge {
+        static let height: CGFloat = 15
+        static let horizontalPadding: CGFloat = 4
+        static let cornerRadius: CGFloat = 4
+        static let spacing = " "
+    }
+
     var isCurrent = false {
         didSet { updateAppearance() }
     }
 
-    private let providerTitle: String
+    let providerTitle: String
+    private var shortcutNumber: Int?
+    private var showsShortcut = false
     private let horizontalPadding: CGFloat
     private let indicatorHeight: CGFloat
     private let cornerRadius: CGFloat
@@ -1222,6 +1414,7 @@ private final class ProviderTabButton: NSButton {
         setButtonType(.momentaryChange)
         setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         toolTip = title
+        setAccessibilityLabel(title)
         wantsLayer = true
         layer?.cornerRadius = cornerRadius
         layer?.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
@@ -1256,22 +1449,78 @@ private final class ProviderTabButton: NSButton {
         updateAppearance()
     }
 
+    func setShortcut(number: Int?, visible: Bool) {
+        guard number != shortcutNumber || visible != showsShortcut else { return }
+        shortcutNumber = number
+        showsShortcut = visible
+        updateAppearance()
+    }
+
     private func updateAppearance() {
-        attributedTitle = NSAttributedString(
+        let font = NSFont.systemFont(ofSize: NSFont.systemFontSize, weight: isCurrent ? .semibold : .regular)
+        let title = NSMutableAttributedString()
+        if showsShortcut, let shortcutNumber {
+            title.append(Self.shortcutBadge(shortcutNumber, alignedWith: font))
+            title.append(NSAttributedString(string: ShortcutBadge.spacing, attributes: [.font: font]))
+        }
+        title.append(NSAttributedString(
             string: providerTitle,
             attributes: [
-                .font: NSFont.systemFont(
-                    ofSize: NSFont.systemFontSize,
-                    weight: isCurrent ? .semibold : .regular
-                ),
+                .font: font,
                 .foregroundColor: isCurrent ? NSColor.labelColor : NSColor.secondaryLabelColor
             ]
-        )
+        ))
+        attributedTitle = title
         indicatorLayer.backgroundColor = NSColor.controlAccentColor.cgColor
         layer?.backgroundColor = isCurrent ? NSColor.textBackgroundColor.cgColor : NSColor.clear.cgColor
         indicatorLayer.isHidden = !isCurrent || indicatorHeight <= 0
         invalidateIntrinsicContentSize()
         needsLayout = true
+    }
+
+    /// A keycap-style number, centered on the capital letters of the title.
+    private static func shortcutBadge(_ number: Int, alignedWith font: NSFont) -> NSAttributedString {
+        let label = "\(number)"
+        let labelWidth = (label as NSString).size(withAttributes: [.font: badgeFont()]).width
+        let size = NSSize(
+            width: max(ceil(labelWidth) + ShortcutBadge.horizontalPadding * 2, ShortcutBadge.height),
+            height: ShortcutBadge.height
+        )
+        // Drawn on demand, so the colors follow the current appearance.
+        let image = NSImage(size: size, flipped: false) { rect in
+            let border = NSBezierPath(
+                roundedRect: rect.insetBy(dx: 0.5, dy: 0.5),
+                xRadius: ShortcutBadge.cornerRadius,
+                yRadius: ShortcutBadge.cornerRadius
+            )
+            NSColor.tertiaryLabelColor.setStroke()
+            border.stroke()
+            let font = badgeFont()
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+            let width = (label as NSString).size(withAttributes: attributes).width
+            let baseline = rect.midY - font.capHeight / 2
+            (label as NSString).draw(
+                at: NSPoint(x: rect.midX - width / 2, y: baseline + font.descender),
+                withAttributes: attributes
+            )
+            return true
+        }
+        let attachment = NSTextAttachment()
+        attachment.image = image
+        attachment.bounds = CGRect(
+            x: 0,
+            y: ((font.capHeight - size.height) / 2).rounded(),
+            width: size.width,
+            height: size.height
+        )
+        return NSAttributedString(attachment: attachment)
+    }
+
+    private static func badgeFont() -> NSFont {
+        .monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
     }
 }
 
@@ -1323,8 +1572,18 @@ private final class DraggableHeaderView: NSView {
 
 @MainActor
 private final class InteractiveResultsPanel: NSPanel {
+    /// Receives key presses that the focused view, such as an extension's page, didn't use.
+    /// Returns `true` when it used the key press.
+    var keyDownHandler: ((NSEvent) -> Bool)?
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    override func keyDown(with event: NSEvent) {
+        if keyDownHandler?(event) != true {
+            super.keyDown(with: event)
+        }
+    }
 
     override func sendEvent(_ event: NSEvent) {
         if event.type == .leftMouseDown, !isKeyWindow {

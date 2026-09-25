@@ -20,11 +20,11 @@ enum WebExtensionCapabilityError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notDeclared(let identifier):
-            "The extension did not declare the \(identifier) capability."
+            String(localized: "The extension did not declare the \(identifier) capability.")
         case .unavailable:
-            "This extension does not provide a native helper."
+            String(localized: "This extension does not provide a native helper.")
         case .invalidMessage:
-            "The extension sent an invalid capability request."
+            String(localized: "The extension sent an invalid capability request.")
         }
     }
 }

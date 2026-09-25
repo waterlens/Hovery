@@ -18,11 +18,11 @@ enum RecognitionModifier: String, Codable, CaseIterable, Sendable {
 
     var displayName: String {
         switch self {
-        case .command: "Command"
-        case .option: "Option"
-        case .control: "Control"
-        case .shift: "Shift"
-        case .globe: "Globe"
+        case .command: String(localized: "Command", comment: "The name of the Command (⌘) key.")
+        case .option: String(localized: "Option", comment: "The name of the Option (⌥) key.")
+        case .control: String(localized: "Control", comment: "The name of the Control (⌃) key.")
+        case .shift: String(localized: "Shift", comment: "The name of the Shift (⇧) key.")
+        case .globe: String(localized: "Globe", comment: "The name of the Globe (🌐) key.")
         }
     }
 

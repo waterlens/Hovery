@@ -1,0 +1,13 @@
+# The manifest's text is English. The page reads these messages from `extension.messages`.
+
+[en.messages]
+# {term} is the text under the pointer.
+lookingUp = "Looking up “{term}”…"
+noDefinition = "No definition found."
+
+[zh-Hans]
+name = "Apple 词典"
+
+[zh-Hans.messages]
+lookingUp = "正在查询“{term}”…"
+noDefinition = "未找到释义。"

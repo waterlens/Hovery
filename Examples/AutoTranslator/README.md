@@ -39,10 +39,16 @@ Extensions run as isolated web pages, so the service must allow cross-origin req
 
 Auto Translator sends the text it translates, the prompt, and your API key to the Base URL you enter. Hovery only allows the extension to connect to that URL's origin.
 
+## Languages
+
+Auto Translator's name, settings, and messages are available in English and Simplified Chinese. Hovery uses the language that matches your preferred languages in System Settings. Your settings do not depend on that language, and the prompt sent to the service stays in English.
+
 ## Structure
 
-- `web/translator.js` builds the prompt and reads Chat Completions responses, including streamed server-sent events. It hides the `<think>` reasoning that some models include in their answers.
+- `i18n.toml` contains the text of the page in English and Simplified Chinese, and the Chinese names of the extension, its settings, and their options.
+- `web/translator.js` builds the prompt and reads Chat Completions responses, including streamed server-sent events. It hides the `<think>` reasoning that some models include in their answers. Its errors carry a code and details, such as the HTTP status and the service's own message, instead of text.
 - `web/translations.js` remembers recent translations. Hovery presents a sentence again whenever the pointer moves to another word in it, so presentations of the same text share one request.
+- `web/messages.js` looks up the page's text in the messages that Hovery provides, and explains errors with them.
 - `web/main.js` highlights the translated text and shows the result, setup guidance, or an error.
 
 Run the tests with `just test-translator`. They require Node.js 20.3 or later.

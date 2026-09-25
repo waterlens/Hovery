@@ -1,27 +1,24 @@
-const comparisonLevels = [
-  { key: "paragraph", label: "Paragraph" },
-  { key: "sentence", label: "Sentence" },
-  { key: "word", label: "Word" }
-]
+const comparisonLevels = ["paragraph", "sentence", "word"]
 
-export function createComparison(root, selections, input) {
+// `messages` come from i18n.toml in the user's language; each level's message is its label.
+export function createComparison(root, selections, input, messages = {}) {
   const comparison = document.createElement("div")
   comparison.className = "comparison"
 
   const results = comparisonLevels.map(level => {
-    const selection = selections?.[level.key]
-      ?? (input?.level === level.key ? input : null)
+    const selection = selections?.[level]
+      ?? (input?.level === level ? input : null)
     const section = document.createElement("section")
-    section.className = `selection selection-${level.key}`
+    section.className = `selection selection-${level}`
 
     const heading = document.createElement("h2")
-    heading.textContent = level.label
+    heading.textContent = messages[level] ?? level
 
     const result = document.createElement("p")
     result.className = "selection-text"
     if (!selection?.text) {
       result.classList.add("selection-unavailable")
-      result.textContent = "Not available"
+      result.textContent = messages.unavailable ?? "unavailable"
     }
 
     section.append(heading, result)

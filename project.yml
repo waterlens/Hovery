@@ -1,6 +1,7 @@
 name: Hovery
 options:
   bundleIdPrefix: app.hovery
+  developmentLanguage: en
   deploymentTarget:
     macOS: "26.0"
 packages:
@@ -43,9 +44,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: app.hovery.Hovery
         PRODUCT_NAME: Hovery
         INFOPLIST_KEY_CFBundleDisplayName: Hovery
-    scheme:
-      testTargets:
-        - HoveryTests
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
   HoveryTests:
     type: bundle.unit-test
     platform: macOS
@@ -57,3 +57,23 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.hovery.HoveryTests
         GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Hovery:
+    build:
+      targets:
+        Hovery: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - HoveryTests
+      # Tests assert English text, so they run in English whatever the Mac's language is.
+      language: en
+      region: US
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

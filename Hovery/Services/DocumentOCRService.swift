@@ -1,4 +1,5 @@
 import CoreGraphics
+import CoreText
 import Foundation
 import Vision
 
@@ -23,26 +24,39 @@ actor DocumentOCRService {
         var fallbackConfidence: Float
     }
 
+    private enum WarmUpSample {
+        /// Each language's models load separately, so English text is ready before Chinese.
+        static let texts = ["Hovery prepares text recognition.", "Hovery 正在准备文字识别。"]
+        static let size = CGSize(width: 900, height: 120)
+        static let fontSize: CGFloat = 40
+        static let margin: CGFloat = 30
+    }
+
     private var cachedDocument: CachedDocument?
+
+    /// Vision prepares its text recognition models during the first request. When their compiled
+    /// form isn't cached, such as after installing a new build, that takes tens of seconds. Hover
+    /// scans are cancelled whenever the pointer moves, and a cancelled request stops preparing the
+    /// models, so the first hovers after launch would rarely finish without this.
+    ///
+    /// Returns the text recognized in the sample images.
+    @discardableResult
+    func warmUp(configuration: HoveryConfiguration = .standard) async throws -> [String] {
+        var transcripts: [String] = []
+        for text in WarmUpSample.texts {
+            guard let image = Self.warmUpImage(text: text) else { continue }
+            let observations = try await Self.request(configuration: configuration).perform(on: image)
+            transcripts.append(observations.first?.document.text.transcript ?? "")
+        }
+        return transcripts
+    }
 
     func recognize(
         frame: CapturedFrame,
         pointer: CGPoint,
         configuration: HoveryConfiguration = .standard
     ) async throws -> OCRRecognition {
-        var request = RecognizeDocumentsRequest()
-        var textOptions = request.textRecognitionOptions
-        textOptions.minimumTextHeightFraction = Float(configuration.recognition.minimumTextHeightFraction)
-        textOptions.automaticallyDetectLanguage = configuration.recognition.automaticallyDetectLanguage
-        textOptions.useLanguageCorrection = configuration.recognition.useLanguageCorrection
-        textOptions.maximumCandidateCount = configuration.recognition.maximumCandidateCount
-        request.textRecognitionOptions = textOptions
-
-        var barcodeOptions = request.barcodeDetectionOptions
-        barcodeOptions.enabled = false
-        request.barcodeDetectionOptions = barcodeOptions
-
-        let observations = try await request.perform(on: frame.image)
+        let observations = try await Self.request(configuration: configuration).perform(on: frame.image)
         try Task.checkCancellation()
         guard let document = observations.first?.document else {
             cachedDocument = nil
@@ -89,6 +103,45 @@ actor DocumentOCRService {
     func discardRecognition(_ identifier: UUID) {
         guard cachedDocument?.identifier == identifier else { return }
         cachedDocument = nil
+    }
+
+    private static func request(configuration: HoveryConfiguration) -> RecognizeDocumentsRequest {
+        var request = RecognizeDocumentsRequest()
+        var textOptions = request.textRecognitionOptions
+        textOptions.minimumTextHeightFraction = Float(configuration.recognition.minimumTextHeightFraction)
+        textOptions.automaticallyDetectLanguage = configuration.recognition.automaticallyDetectLanguage
+        textOptions.useLanguageCorrection = configuration.recognition.useLanguageCorrection
+        textOptions.maximumCandidateCount = configuration.recognition.maximumCandidateCount
+        request.textRecognitionOptions = textOptions
+
+        var barcodeOptions = request.barcodeDetectionOptions
+        barcodeOptions.enabled = false
+        request.barcodeDetectionOptions = barcodeOptions
+        return request
+    }
+
+    /// Dark text on white.
+    private static func warmUpImage(text: String) -> CGImage? {
+        let size = WarmUpSample.size
+        guard let context = CGContext(
+            data: nil,
+            width: Int(size.width),
+            height: Int(size.height),
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        context.setFillColor(CGColor(gray: 1, alpha: 1))
+        context.fill(CGRect(origin: .zero, size: size))
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: CTFontCreateUIFontForLanguage(.system, WarmUpSample.fontSize, nil) as Any,
+            .foregroundColor: CGColor(gray: 0, alpha: 1)
+        ]
+        context.textPosition = CGPoint(x: WarmUpSample.margin, y: size.height - WarmUpSample.margin - WarmUpSample.fontSize)
+        CTLineDraw(CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: attributes)), context)
+        return context.makeImage()
     }
 }
 

@@ -30,6 +30,10 @@ struct WebExtensionDescriptor: Equatable, Sendable {
     let allowsSelectionOverlay: Bool
     let nativeHost: WebExtensionNativeDescriptor?
     let settings: [WebExtensionSettingDescriptor]
+    /// The language of `name`, `settings`, and `messages`, chosen from the extension's localizations.
+    let language: String
+    /// Strings for the extension's page, from `i18n.toml`.
+    let messages: [String: String]
 }
 
 struct WebExtensionNativeDescriptor: Equatable, Sendable {
@@ -57,19 +61,19 @@ enum WebExtensionManifestError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingManifest(let url):
-            "Missing extension manifest at \(url.path)"
+            String(localized: "Missing extension manifest at \(url.path)")
         case .invalidIdentifier(let identifier):
-            "Invalid extension identifier: \(identifier)"
+            String(localized: "Invalid extension identifier: \(identifier)")
         case .unsafeResourcePath(let path):
-            "Extension resource must stay inside its package: \(path)"
+            String(localized: "Extension resource must stay inside its package: \(path)")
         case .missingResource(let path):
-            "Extension resource does not exist: \(path)"
+            String(localized: "Extension resource does not exist: \(path)")
         case .invalidNetworkOrigin(let origin):
-            "Invalid extension network origin: \(origin)"
+            String(localized: "Invalid extension network origin: \(origin)")
         case .unsupportedNativeProtocol(let value):
-            "Unsupported native extension protocol: \(value)"
+            String(localized: "Unsupported native extension protocol: \(value)")
         case .invalidSetting(let key, let reason):
-            "Invalid extension setting \(key): \(reason)"
+            String(localized: "Invalid extension setting \(key): \(reason)")
         }
     }
 }
@@ -81,12 +85,14 @@ struct WebExtensionCatalog {
             let name: String
             let input: WebExtensionInputLevel
             let order: Int
+            let defaultLanguage: String
 
             private enum CodingKeys: String, CodingKey {
                 case id
                 case name
                 case input
                 case order
+                case defaultLanguage
             }
 
             init(from decoder: Decoder) throws {
@@ -95,6 +101,8 @@ struct WebExtensionCatalog {
                 name = try container.decode(String.self, forKey: .name)
                 input = try container.decodeIfPresent(WebExtensionInputLevel.self, forKey: .input) ?? .word
                 order = try container.decodeIfPresent(Int.self, forKey: .order) ?? 0
+                defaultLanguage = try container.decodeIfPresent(String.self, forKey: .defaultLanguage)
+                    ?? WebExtensionLocalization.defaultManifestLanguage
             }
         }
 
@@ -236,9 +244,14 @@ struct WebExtensionCatalog {
     static func discover(
         in directoryURL: URL,
         fileManager: FileManager = .default,
+        preferredLanguages: [String] = Locale.preferredLanguages,
         onFailure: ((URL, any Error) -> Void)? = nil
     ) throws -> [WebExtensionDescriptor] {
-        try inspect(in: directoryURL, fileManager: fileManager).compactMap { entry in
+        try inspect(
+            in: directoryURL,
+            fileManager: fileManager,
+            preferredLanguages: preferredLanguages
+        ).compactMap { entry in
             if let errorDescription = entry.errorDescription {
                 onFailure?(
                     entry.packageURL,
@@ -258,7 +271,8 @@ struct WebExtensionCatalog {
 
     static func inspect(
         in directoryURL: URL,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        preferredLanguages: [String] = Locale.preferredLanguages
     ) throws -> [WebExtensionCatalogEntry] {
         try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
         let packageURLs = try fileManager.contentsOfDirectory(
@@ -273,7 +287,11 @@ struct WebExtensionCatalog {
                 guard values.isDirectory == true else { continue }
                 entries.append(WebExtensionCatalogEntry(
                     packageURL: packageURL,
-                    descriptor: try load(packageURL: packageURL, fileManager: fileManager),
+                    descriptor: try load(
+                        packageURL: packageURL,
+                        fileManager: fileManager,
+                        preferredLanguages: preferredLanguages
+                    ),
                     errorDescription: nil
                 ))
             } catch {
@@ -291,9 +309,11 @@ struct WebExtensionCatalog {
         }
     }
 
+    /// The descriptor's text is in the extension's language that best matches `preferredLanguages`.
     static func load(
         packageURL: URL,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        preferredLanguages: [String] = Locale.preferredLanguages
     ) throws -> WebExtensionDescriptor {
         let manifestURL = packageURL.appendingPathComponent(manifestFilename, isDirectory: false)
         guard fileManager.fileExists(atPath: manifestURL.path) else {
@@ -331,9 +351,15 @@ struct WebExtensionCatalog {
 
         let origins = try manifest.permissions.network.map(validateNetworkOrigin)
         let settings = try settingDescriptors(from: manifest.settings)
+        let localization = try WebExtensionLocalization.load(
+            packageURL: packageURL,
+            defaultLanguage: manifest.metadata.defaultLanguage,
+            settings: settings,
+            fileManager: fileManager
+        ).resolved(for: preferredLanguages)
         return WebExtensionDescriptor(
             identifier: manifest.metadata.id,
-            name: manifest.metadata.name,
+            name: localization.text.name ?? manifest.metadata.name,
             preferredInput: manifest.metadata.input,
             order: manifest.metadata.order,
             packageURL: packageURL.resolvingSymlinksInPath(),
@@ -348,7 +374,9 @@ struct WebExtensionCatalog {
                     communicationProtocol: $0.communicationProtocol
                 )
             },
-            settings: settings
+            settings: localization.text.localizing(settings),
+            language: localization.language,
+            messages: localization.text.messages
         )
     }
 
@@ -405,47 +433,47 @@ struct WebExtensionCatalog {
             }
 
             guard isValidSettingKey(key) else {
-                throw invalid("Keys must start with a letter and contain only letters, digits, and underscores.")
+                throw invalid(String(localized: "Keys must start with a letter and contain only letters, digits, and underscores."))
             }
             guard keys.insert(key).inserted else {
-                throw invalid("The key is declared more than once.")
+                throw invalid(String(localized: "The key is declared more than once."))
             }
             guard let type = WebExtensionSettingType(rawValue: setting.type) else {
-                throw invalid("Unsupported type \"\(setting.type)\".")
+                throw invalid(String(localized: "Unsupported type \"\(setting.type)\"."))
             }
             guard !setting.network || type == .url else {
-                throw invalid("Only url settings can grant network access.")
+                throw invalid(String(localized: "Only url settings can grant network access."))
             }
             guard setting.options.isEmpty || type == .choice else {
-                throw invalid("Only choice settings can declare options.")
+                throw invalid(String(localized: "Only choice settings can declare options."))
             }
             guard (setting.minimum == nil && setting.maximum == nil) || type == .number else {
-                throw invalid("Only number settings can declare a minimum or maximum.")
+                throw invalid(String(localized: "Only number settings can declare a minimum or maximum."))
             }
             let minimum = try setting.minimum.map { value in
                 guard let number = value.numberValue, number.isFinite else {
-                    throw invalid("The minimum must be a number.")
+                    throw invalid(String(localized: "The minimum must be a number."))
                 }
                 return number
             }
             let maximum = try setting.maximum.map { value in
                 guard let number = value.numberValue, number.isFinite else {
-                    throw invalid("The maximum must be a number.")
+                    throw invalid(String(localized: "The maximum must be a number."))
                 }
                 return number
             }
             if let minimum, let maximum, minimum > maximum {
-                throw invalid("The minimum is greater than the maximum.")
+                throw invalid(String(localized: "The minimum is greater than the maximum."))
             }
             let options = setting.options.map {
                 WebExtensionSettingOption(value: $0.value, title: $0.title)
             }
             if type == .choice {
                 guard !options.isEmpty else {
-                    throw invalid("A choice needs at least one option.")
+                    throw invalid(String(localized: "A choice needs at least one option."))
                 }
                 guard Set(options.map(\.value)).count == options.count else {
-                    throw invalid("Choice option values must be unique.")
+                    throw invalid(String(localized: "Choice option values must be unique."))
                 }
             }
 
@@ -454,7 +482,7 @@ struct WebExtensionCatalog {
             case (.secret, nil):
                 defaultValue = .string("")
             case (.secret, _?):
-                throw invalid("Secret settings cannot declare a default value.")
+                throw invalid(String(localized: "Secret settings cannot declare a default value."))
             case (.string, nil), (.text, nil), (.url, nil):
                 defaultValue = .string("")
             case (.string, .string(let text)?), (.text, .string(let text)?):
@@ -462,7 +490,7 @@ struct WebExtensionCatalog {
             case (.url, .string(let text)?):
                 guard text.isEmpty
                     || URLComponents(string: text).flatMap(WebExtensionNetworkOrigin.origin(of:)) != nil else {
-                    throw invalid("The default value is not an http, https, ws, or wss URL.")
+                    throw invalid(String(localized: "The default value is not an http, https, ws, or wss URL."))
                 }
                 defaultValue = .string(text)
             case (.boolean, nil):
@@ -475,18 +503,18 @@ struct WebExtensionCatalog {
                 guard number.isFinite,
                       number >= minimum ?? -.infinity,
                       number <= maximum ?? .infinity else {
-                    throw invalid("The default value is outside the allowed range.")
+                    throw invalid(String(localized: "The default value is outside the allowed range."))
                 }
                 defaultValue = .number(number)
             case (.choice, nil):
                 defaultValue = .string(options[0].value)
             case (.choice, .string(let choice)?):
                 guard options.contains(where: { $0.value == choice }) else {
-                    throw invalid("The default value is not one of the options.")
+                    throw invalid(String(localized: "The default value is not one of the options."))
                 }
                 defaultValue = .string(choice)
             default:
-                throw invalid("The default value does not match the \(type.rawValue) type.")
+                throw invalid(String(localized: "The default value does not match the \(type.rawValue) type."))
             }
 
             return WebExtensionSettingDescriptor(

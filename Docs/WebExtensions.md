@@ -32,7 +32,7 @@ export function mount({ root, extension, settings, capabilities }) {
   // Called once after the document and ESM entry load.
 }
 
-export async function present({ id, input, selections, root, signal, settings, capabilities, overlay }) {
+export async function present({ id, input, selections, root, signal, extension, settings, capabilities, overlay }) {
   overlay.showInput()
   root.textContent = input.text
 }
@@ -42,7 +42,7 @@ export function unmount({ root }) {
 }
 ```
 
-Hovery aborts `signal` before invoking `present()` for a newer request. The page owns its DOM and may use standard browser APIs, ESM imports, Web Components, or a bundled Web framework. There is no callback or event-based lifecycle API.
+`extension` contains the extension's `id`, `name`, declared `capabilities`, and `selectionOverlay` permission, and the `language` and `messages` described in [Localization](#localization). Hovery aborts `signal` before invoking `present()` for a newer request. Only the extension in the visible tab of the results panel receives requests. When the user selects another tab, Hovery presents the current request to the newly visible extension. If the extension the user left hasn't finished `present()` yet, Hovery aborts it and presents the same request again when its tab is selected. The page owns its DOM and may use standard browser APIs, ESM imports, Web Components, or a bundled Web framework. There is no callback or event-based lifecycle API.
 
 Relative resources are isolated to the extension package. Network connections are disabled unless their origin is listed in the manifest or granted by a [URL setting](#network-access-from-settings). Browser CORS rules still apply.
 
@@ -111,6 +111,52 @@ language = "ja"
 ### Network access from settings
 
 A `url` setting with `network = true` lets the extension connect to the origin of the URL the user enters, in addition to the origins listed under `[permissions]`. Only the scheme, host, and port are granted. The origin of the default value is granted until the user changes it.
+
+## Localization
+
+An extension can show its name, its settings, and the text of its page in other languages. Put the text in `i18n.toml` beside `manifest.toml`, with one table per language tag, such as `en`, `zh-Hans`, or `pt-BR`:
+
+```toml
+[en.messages]
+copyTranslation = "Copy Translation"
+timeout = "The service did not respond within {seconds} seconds."
+
+[zh-Hans]
+name = "自动翻译"
+
+[zh-Hans.settings.targetLanguage]
+title = "目标语言"
+options = { "Simplified Chinese" = "简体中文", English = "英语" }
+
+[zh-Hans.messages]
+copyTranslation = "拷贝译文"
+timeout = "服务未在 {seconds} 秒内响应。"
+```
+
+| Key | Contents |
+| --- | --- |
+| `name` | The extension's name. |
+| `settings.<key>` | The setting's `title`, `description`, and `placeholder`, and `options`, which maps option values to their titles. |
+| `messages` | Strings for the page. Keys start with a letter and contain only letters, digits, and underscores. |
+
+The manifest's own text is in the extension's default language, which is `en` unless the manifest declares another:
+
+```toml
+[extension]
+defaultLanguage = "zh-Hans"
+```
+
+Hovery chooses from the default language and the languages in `i18n.toml` the one that best matches the user's preferred languages, and uses the default language when none of them matches. Text that the chosen language omits comes from its base language, such as `pt` for `pt-BR`, if the extension provides one, and otherwise from the default language. The default language's text is the manifest's, updated by its own table in `i18n.toml`, so every message must exist in that table. Localization changes only text; setting keys and option values are the same in every language, so values in `extensions.toml` stay valid.
+
+`mount()` and `present()` receive the chosen language tag as `extension.language` and the page strings in that language as the frozen `extension.messages`. Before loading the module, Hovery sets `document.documentElement.lang` to the chosen language, which also lets WebKit choose the right fonts for Chinese, Japanese, and Korean text. Placeholders such as `{seconds}` have no meaning to Hovery; the page fills them in:
+
+```js
+export function present({ root, extension }) {
+  root.textContent = extension.messages.timeout.replace("{seconds}", "30")
+}
+```
+
+Like the manifest, `i18n.toml` is validated strictly. The extension does not load, and **Extensions…** shows why, if the file is not valid TOML, a language tag is not a well-formed tag in canonical case, a key is unknown or a text is not a string, a setting or option value is not declared in the manifest, `options` belongs to a setting that is not a choice, or a message is missing from the default language.
 
 ## Selection overlay
 
@@ -209,4 +255,4 @@ The example prefers the system's rich panel document when that implementation is
 
 Example packages are not installed automatically. Copy one into the folder shown by **Extensions… → Open Extensions Folder**, then choose **Reload**.
 
-See `Examples/StreamingEcho/Extension/StreamingEcho.hoveryextension` for incremental page updates, `Examples/AppleDictionary` for the independently built native example, and `Examples/AutoTranslator` for a Web-only extension that uses settings to call an OpenAI-compatible API.
+See `Examples/StreamingEcho/Extension/StreamingEcho.hoveryextension` for incremental page updates, `Examples/AppleDictionary` for the independently built native example, and `Examples/AutoTranslator` for a Web-only extension that uses settings to call an OpenAI-compatible API. All three are localized into Simplified Chinese.

@@ -27,8 +27,8 @@ struct PermissionsView: View {
             }
 
             permissionRow(
-                title: "Screen & System Audio Recording",
-                description: "Lets Hovery read text beneath the pointer.",
+                title: String(localized: "Screen & System Audio Recording"),
+                description: String(localized: "Lets Hovery read text beneath the pointer."),
                 systemImage: "rectangle.dashed.badge.record",
                 isAllowed: engine.permissionGranted,
                 requestAccess: engine.requestScreenRecordingPermission,
@@ -36,8 +36,8 @@ struct PermissionsView: View {
             )
 
             permissionRow(
-                title: "Accessibility",
-                description: "Lets Hovery find content beneath the pointer.",
+                title: String(localized: "Accessibility"),
+                description: String(localized: "Lets Hovery find content beneath the pointer."),
                 systemImage: "accessibility",
                 isAllowed: engine.accessibilityPermissionGranted,
                 requestAccess: engine.requestAccessibilityPermission,
@@ -67,9 +67,9 @@ struct PermissionsView: View {
 
     private var summary: String {
         if engine.permissionGranted, engine.accessibilityPermissionGranted {
-            return "Hovery has the permissions required for hover recognition."
+            return String(localized: "Hovery has the permissions required for hover recognition.")
         }
-        return "Hovery needs the following permissions before hover recognition can run."
+        return String(localized: "Hovery needs the following permissions before hover recognition can run.")
     }
 
     private func permissionRow(
@@ -99,7 +99,7 @@ struct PermissionsView: View {
                 Spacer()
 
                 Label(
-                    isAllowed ? "Allowed" : "Not Allowed",
+                    isAllowed ? String(localized: "Allowed") : String(localized: "Not Allowed"),
                     systemImage: isAllowed ? "checkmark.circle.fill" : "exclamationmark.circle.fill"
                 )
                 .foregroundStyle(isAllowed ? .green : .orange)
@@ -133,7 +133,7 @@ final class PermissionsWindowController: NSWindowController {
             rootView: PermissionsView(engine: engine, onDone: {})
         )
         window.contentViewController = hostingController
-        window.title = "Hovery Permissions"
+        window.title = String(localized: "Hovery Permissions")
         window.isReleasedWhenClosed = false
         window.setContentSize(
             NSSize(

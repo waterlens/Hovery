@@ -1,0 +1,137 @@
+# The manifest's text is English. The page reads these messages from `extension.messages` and
+# fills in `{placeholder}`s. URL, key, and model placeholders need no translation.
+
+[en.messages]
+copyOriginal = "Copy Original"
+copyTranslation = "Copy Translation"
+copied = "Copied"
+copyFailed = "Couldn’t Copy"
+translating = "Translating…"
+# {settings} lists setupBaseURL and setupModel.
+setupRequired = "Click the gear button above and enter the {settings} to start translating."
+setupBaseURL = "Base URL"
+setupModel = "Model"
+translationFailed = "Couldn’t Translate"
+# Failures, named by TranslationError code. A message from the service replaces them.
+invalidBaseURL = "The Base URL is not a valid URL."
+invalidBaseURLHint = "Enter a full URL, such as https://api.openai.com/v1."
+unsupportedBaseURL = "The Base URL must start with https:// or http://."
+timeout = "The service did not respond within {seconds} seconds."
+timeoutHint = "Try again, or increase the timeout in Auto Translator’s settings."
+network = "Could not connect to {origin}."
+networkHint = "Check the Base URL and your network connection. The service must allow cross-origin requests (CORS)."
+http = "The service responded with HTTP {status}."
+unauthorizedHint = "Check the API key in Auto Translator’s settings."
+notFoundHint = "Check the Base URL (it usually ends with a version path such as /v1) and the model name."
+rateLimitedHint = "The service is limiting requests. Try again in a moment."
+serverErrorHint = "The service had a problem. Try again later."
+serviceError = "The service reported an error."
+malformedStream = "The service sent a malformed streaming response."
+unexpectedResponse = "The service returned an unexpected response."
+emptyTranslation = "The service returned an empty translation."
+unknown = "An unknown error occurred."
+
+[zh-Hans]
+name = "自动翻译"
+
+[zh-Hans.settings.baseURL]
+title = "API 地址"
+
+[zh-Hans.settings.apiKey]
+title = "API 密钥"
+
+[zh-Hans.settings.model]
+title = "模型"
+
+[zh-Hans.settings.targetLanguage]
+title = "目标语言"
+
+[zh-Hans.settings.targetLanguage.options]
+"Simplified Chinese" = "简体中文"
+"Traditional Chinese" = "繁体中文"
+English = "英语"
+Japanese = "日语"
+Korean = "韩语"
+French = "法语"
+German = "德语"
+Spanish = "西班牙语"
+Portuguese = "葡萄牙语"
+Italian = "意大利语"
+Russian = "俄语"
+Ukrainian = "乌克兰语"
+Polish = "波兰语"
+Dutch = "荷兰语"
+Turkish = "土耳其语"
+Arabic = "阿拉伯语"
+Hindi = "印地语"
+Indonesian = "印度尼西亚语"
+Vietnamese = "越南语"
+Thai = "泰语"
+
+[zh-Hans.settings.alternateLanguage]
+title = "第二语言"
+description = "原文已是目标语言时，改为翻译成此语言。"
+
+[zh-Hans.settings.alternateLanguage.options]
+"Simplified Chinese" = "简体中文"
+"Traditional Chinese" = "繁体中文"
+English = "英语"
+Japanese = "日语"
+Korean = "韩语"
+French = "法语"
+German = "德语"
+Spanish = "西班牙语"
+Portuguese = "葡萄牙语"
+Italian = "意大利语"
+Russian = "俄语"
+Ukrainian = "乌克兰语"
+Polish = "波兰语"
+Dutch = "荷兰语"
+Turkish = "土耳其语"
+Arabic = "阿拉伯语"
+Hindi = "印地语"
+Indonesian = "印度尼西亚语"
+Vietnamese = "越南语"
+Thai = "泰语"
+
+[zh-Hans.settings.granularity]
+title = "翻译粒度"
+options = { word = "单词", sentence = "句子", paragraph = "段落", block = "文本块" }
+
+[zh-Hans.settings.stream]
+title = "流式输出"
+
+[zh-Hans.settings.timeout]
+title = "超时（秒）"
+
+[zh-Hans.settings.instructions]
+title = "附加说明"
+placeholder = "保留英文技术术语。"
+
+[zh-Hans.messages]
+copyOriginal = "拷贝原文"
+copyTranslation = "拷贝译文"
+copied = "已拷贝"
+copyFailed = "无法拷贝"
+translating = "正在翻译…"
+setupRequired = "点按上方的齿轮按钮，然后输入{settings}以开始翻译。"
+setupBaseURL = "“API 地址”"
+setupModel = "“模型”"
+translationFailed = "无法翻译"
+invalidBaseURL = "API 地址不是有效的 URL。"
+invalidBaseURLHint = "请输入完整的 URL，例如 https://api.openai.com/v1。"
+unsupportedBaseURL = "API 地址必须以 https:// 或 http:// 开头。"
+timeout = "服务未在 {seconds} 秒内响应。"
+timeoutHint = "请重试，或在“自动翻译”设置中增加超时时间。"
+network = "无法连接到 {origin}。"
+networkHint = "请检查 API 地址和网络连接。服务必须允许跨域请求（CORS）。"
+http = "服务返回了 HTTP {status} 错误。"
+unauthorizedHint = "请在“自动翻译”设置中检查 API 密钥。"
+notFoundHint = "请检查 API 地址（通常以 /v1 等版本路径结尾）和模型名称。"
+rateLimitedHint = "服务正在限制请求频率，请稍后再试。"
+serverErrorHint = "服务出现问题，请稍后再试。"
+serviceError = "服务报告了错误。"
+malformedStream = "服务发送的流式响应格式有误。"
+unexpectedResponse = "服务返回了意外的响应。"
+emptyTranslation = "服务返回的译文为空。"
+unknown = "发生未知错误。"

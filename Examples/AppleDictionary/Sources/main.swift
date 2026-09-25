@@ -36,11 +36,17 @@ private struct DictionaryResult {
 
     var payload: [String: Any] {
         [
+            "found": true,
             "term": term,
             "format": format,
             "content": content,
             "dictionary": dictionary ?? NSNull()
         ]
+    }
+
+    /// No dictionary defines `term`. The page explains this in the user's language.
+    static func notFoundPayload(term: String) -> [String: Any] {
+        ["found": false, "term": term]
     }
 }
 
@@ -76,12 +82,7 @@ private final class DictionaryLookup {
                 dictionary: nil
             ).payload
         }
-        return DictionaryResult(
-            term: text,
-            format: "text",
-            content: "No definition found.",
-            dictionary: nil
-        ).payload
+        return DictionaryResult.notFoundPayload(term: text)
     }
 
     private func detectedTerm(in text: String) -> String? {

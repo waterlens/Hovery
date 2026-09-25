@@ -18,6 +18,8 @@ Download the current DMG from [GitHub Releases](https://github.com/waterlens/Hov
 
 At first launch, grant both permissions shown by Hovery. Recognition is enabled by default while Command is held. Timing, activation keys, OCR behavior, and debugging options are configurable from Settings.
 
+Hovery and its extensions are available in English and Simplified Chinese and follow your preferred languages. To choose a language for Hovery alone, add it under **System Settings → General → Language & Region → Applications**.
+
 ## Extensions
 
 Release assets include two extensions:
@@ -26,6 +28,8 @@ Release assets include two extensions:
 - **Auto Translator** (`AutoTranslator-<version>.hoveryextension.zip`) translates the text under the pointer with an OpenAI-compatible service of your choice. After installing it, click its gear button and enter the service's Base URL, API key, and model. See [its README](Examples/AutoTranslator/README.md) for common services.
 
 To install one, extract it, open **Extensions…**, and copy the `.hoveryextension` directory into the extensions folder.
+
+Each enabled extension has a tab in the results panel, and Hovery keeps the tab you choose. Only the extension in the visible tab works on the text under the pointer, so a service that charges per request is used only while you look at its tab. To switch tabs, keep holding the recognition keys and press 1–9; the tabs show their numbers while the keys are held. After you click the panel, the number keys work on their own.
 
 Extensions are ordinary isolated web pages with ESM entry points, and can declare settings that Hovery lets you edit. See [WebExtensions.md](Docs/WebExtensions.md) and the examples under [`Examples`](Examples).
 

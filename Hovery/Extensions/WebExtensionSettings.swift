@@ -75,16 +75,16 @@ struct WebExtensionSettingOption: Equatable, Identifiable, Sendable {
 
 struct WebExtensionSettingDescriptor: Equatable, Identifiable, Sendable {
     let key: String
-    let title: String
+    var title: String
     let type: WebExtensionSettingType
-    let detail: String?
-    let placeholder: String?
+    var detail: String?
+    var placeholder: String?
     let defaultValue: WebExtensionSettingValue
     let isRequired: Bool
     let grantsNetworkAccess: Bool
     let minimum: Double?
     let maximum: Double?
-    let options: [WebExtensionSettingOption]
+    var options: [WebExtensionSettingOption]
 
     var id: String { key }
 
@@ -242,7 +242,8 @@ enum WebExtensionSecretStoreError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .keychain(let status):
-            "The Keychain could not store the secret: \(SecCopyErrorMessageString(status, nil) as String? ?? "OSStatus \(status)")"
+            let message = SecCopyErrorMessageString(status, nil) as String? ?? "OSStatus \(status)"
+            return String(localized: "The Keychain could not store the secret: \(message)")
         }
     }
 }

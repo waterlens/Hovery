@@ -71,7 +71,7 @@ struct MenuContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.verticalSpacing) {
             toggleRow(
-                "Hover Recognition",
+                String(localized: "Hover Recognition"),
                 systemImage: "viewfinder.circle",
                 isOn: Binding(
                     get: { engine.isRunning },
@@ -83,7 +83,7 @@ struct MenuContentView: View {
             )
 
             toggleRow(
-                "Open at Login",
+                String(localized: "Open at Login"),
                 systemImage: "power",
                 isOn: Binding(
                     get: { launchAtLoginEnabled },
@@ -94,18 +94,22 @@ struct MenuContentView: View {
             )
 
             HStack(spacing: Layout.pairedButtonSpacing) {
-                actionButton("Permissions…", systemImage: "lock.shield", action: showPermissions)
-                actionButton("Extensions…", systemImage: "puzzlepiece.extension", action: showExtensions)
+                actionButton(String(localized: "Permissions…"), systemImage: "lock.shield", action: showPermissions)
+                actionButton(
+                    String(localized: "Extensions…"),
+                    systemImage: "puzzlepiece.extension",
+                    action: showExtensions
+                )
             }
 
             Divider()
 
             HStack(spacing: Layout.pairedButtonSpacing) {
-                actionButton("About Hovery", systemImage: "info.circle") {
+                actionButton(String(localized: "About Hovery"), systemImage: "info.circle") {
                     NSApp.activate(ignoringOtherApps: true)
                     showAboutPanel()
                 }
-                actionButton("Settings…", systemImage: "gearshape") {
+                actionButton(String(localized: "Settings…"), systemImage: "gearshape") {
                     NSApp.activate(ignoringOtherApps: true)
                     openSettings()
                 }
@@ -146,7 +150,7 @@ struct MenuContentView: View {
     }
 
     private func toggleRow(
-        _ title: LocalizedStringKey,
+        _ title: String,
         systemImage: String,
         isOn: Binding<Bool>
     ) -> some View {
@@ -160,7 +164,7 @@ struct MenuContentView: View {
     }
 
     private func actionButton(
-        _ title: LocalizedStringKey,
+        _ title: String,
         systemImage: String,
         action: @escaping () -> Void
     ) -> some View {

@@ -10,7 +10,7 @@ final class HoverEngine: ObservableObject {
     @Published private(set) var isRunning = false
     @Published private(set) var permissionGranted = CGPreflightScreenCaptureAccess()
     @Published private(set) var accessibilityPermissionGranted = AccessibilityRegionResolver.isTrusted
-    @Published private(set) var status = "Waiting"
+    @Published private(set) var status = String(localized: "Waiting")
     @Published private(set) var currentSelection: SemanticSelection?
 
     private let settings: HoverySettings
@@ -75,12 +75,25 @@ final class HoverEngine: ObservableObject {
         anchorPoint = nil
         hasAttemptedScanAtAnchor = false
         modifierKeysWereSatisfied = requiredModifiersArePressed()
-        status = modifierKeysWereSatisfied ? "Hover over visible text" : requiredModifiersStatus()
+        status = modifierKeysWereSatisfied ? String(localized: "Hover over visible text") : requiredModifiersStatus()
         stableSince = clock.now
         startContentMutationMonitoring()
         let contentCacheLifetime = settings.configuration.capture.contentCacheLifetime
         Task { [captureService] in
             await captureService.prepare(cacheLifetime: contentCacheLifetime)
+        }
+        // Not tied to a hover, so moving the pointer can't cancel loading the recognition models.
+        let configuration = settings.configuration
+        Task { [ocrService, logger] in
+            let start = ContinuousClock.now
+            do {
+                try await ocrService.warmUp(configuration: configuration)
+                let duration = start.duration(to: .now)
+                let seconds = Double(duration.components.seconds) + Double(duration.components.attoseconds) / 1e18
+                logger.notice("Prepared text recognition in \(seconds, format: .fixed(precision: 2), privacy: .public) s")
+            } catch {
+                logger.error("Could not prepare text recognition: \(error.localizedDescription, privacy: .public)")
+            }
         }
         loopTask = Task { [weak self] in
             await self?.runLoop()
@@ -104,7 +117,7 @@ final class HoverEngine: ObservableObject {
         webExtensions.hide()
         stoppedForMissingPermissions = false
         stopContentMutationMonitoring()
-        status = "Paused"
+        status = String(localized: "Paused")
         logger.notice("Hover recognition paused")
     }
 
@@ -175,13 +188,13 @@ final class HoverEngine: ObservableObject {
     private func updateMissingPermissionStatus() {
         switch (permissionGranted, accessibilityPermissionGranted) {
         case (false, false):
-            status = "Screen & System Audio Recording and Accessibility permissions required"
+            status = String(localized: "Screen & System Audio Recording and Accessibility permissions required")
         case (false, true):
-            status = "Screen & System Audio Recording permission required"
+            status = String(localized: "Screen & System Audio Recording permission required")
         case (true, false):
-            status = "Accessibility permission required"
+            status = String(localized: "Accessibility permission required")
         case (true, true):
-            status = "Ready"
+            status = String(localized: "Ready")
         }
     }
 
@@ -301,7 +314,9 @@ final class HoverEngine: ObservableObject {
 
     private func requiredModifiersStatus() -> String {
         let symbols = settings.configuration.interaction.requiredModifiers.map(\.symbol).joined()
-        return symbols.isEmpty ? "Hover over visible text" : "Hold \(symbols) to recognize text"
+        return symbols.isEmpty
+            ? String(localized: "Hover over visible text")
+            : String(localized: "Hold \(symbols) to recognize text")
     }
 
     private func updateStatus(_ value: String) {
@@ -322,7 +337,7 @@ final class HoverEngine: ObservableObject {
         clearRecognitionCache()
         overlay.hide()
         webExtensions.suspendSourceOverlay()
-        status = "Reading…"
+        status = String(localized: "Reading…")
     }
 
     private func retargetCachedRecognition(at point: CGPoint, now: ContinuousClock.Instant) {
@@ -488,14 +503,14 @@ final class HoverEngine: ObservableObject {
     private func applyCachedNoHit(retargetedAt point: CGPoint) {
         guard pointerRemainsNear(point) else { return }
         guard hierarchy != nil || currentSelection != nil else {
-            status = "No text under pointer"
+            status = String(localized: "No text under pointer")
             return
         }
         hierarchy = nil
         currentSelection = nil
         overlay.clearSelection()
         webExtensions.suspendSourceOverlay()
-        status = "No text under pointer"
+        status = String(localized: "No text under pointer")
     }
 
     private func pointerRemainsNear(_ point: CGPoint) -> Bool {
@@ -520,7 +535,7 @@ final class HoverEngine: ObservableObject {
             currentSelection = nil
             overlay.clearSelection()
             webExtensions.suspendSourceOverlay()
-            status = "No text under pointer"
+            status = String(localized: "No text under pointer")
             logger.debug("No text candidate matched the pointer")
             return
         }
@@ -530,7 +545,7 @@ final class HoverEngine: ObservableObject {
             currentSelection = nil
             overlay.clearSelection()
             webExtensions.suspendSourceOverlay()
-            status = "No text under pointer"
+            status = String(localized: "No text under pointer")
             return
         }
 
@@ -544,7 +559,7 @@ final class HoverEngine: ObservableObject {
                 configuration: overlayConfiguration
             )
         }
-        status = "Showing \(selections.count) semantic levels"
+        status = String(localized: "Showing \(selections.count) semantic levels")
         logger.notice("Hover hierarchy ready with \(result.selections.count, privacy: .public) semantic levels")
     }
 
@@ -565,9 +580,18 @@ final class HoverEngine: ObservableObject {
             .otherMouseDragged
         ]
         contentMutationMonitor = NSEvent.addGlobalMonitorForEvents(matching: mutationEvents) {
-            [weak self] _ in
+            [weak self] event in
+            let key = event.type == .keyDown
+                ? (code: Int64(event.keyCode), flags: UInt64(event.modifierFlags.rawValue))
+                : nil
             Task { @MainActor [weak self] in
-                self?.invalidateCachedContent()
+                guard let self else { return }
+                // Selecting a results tab doesn't change the content under the pointer.
+                if let key,
+                   webExtensions.isTabShortcut(keyCode: key.code, flags: CGEventFlags(rawValue: key.flags)) {
+                    return
+                }
+                invalidateCachedContent()
             }
         }
         modifierEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) {

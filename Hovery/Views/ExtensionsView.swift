@@ -118,7 +118,7 @@ struct ExtensionsView: View {
                         .foregroundStyle(.red)
                         .lineLimit(2)
                 } else if let input = status.input {
-                    Text("Uses the \(input.rawValue) under the pointer")
+                    inputDescription(input)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if status.hasNativeCode {
@@ -128,7 +128,7 @@ struct ExtensionsView: View {
                     }
                     if !status.missingRequiredSettings.isEmpty {
                         Label(
-                            "Needs Setup: \(status.missingRequiredSettings.joined(separator: ", "))",
+                            "Needs Setup: \(status.missingRequiredSettings, format: .list(type: .and, width: .narrow))",
                             systemImage: "exclamationmark.circle"
                         )
                         .font(.caption)
@@ -170,12 +170,21 @@ struct ExtensionsView: View {
         }
         .padding(.vertical, Layout.rowSpacing)
     }
+
+    private func inputDescription(_ input: WebExtensionInputLevel) -> Text {
+        switch input {
+        case .word: Text("Uses the word under the pointer")
+        case .sentence: Text("Uses the sentence under the pointer")
+        case .paragraph: Text("Uses the paragraph under the pointer")
+        case .block: Text("Uses the block under the pointer")
+        }
+    }
 }
 
 @MainActor
 final class ExtensionsWindowController: NSWindowController {
     private enum WindowLayout {
-        static let title = "Extensions"
+        static let title = String(localized: "Extensions")
     }
 
     private let model: ExtensionsWindowModel

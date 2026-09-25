@@ -1,6 +1,7 @@
 const dictionaryCapability = "org.hovery.capability.system-dictionary"
 
-export async function present({ input, root, signal, capabilities, overlay }) {
+export async function present({ input, root, signal, capabilities, overlay, extension }) {
+  const messages = extension?.messages ?? {}
   overlay.showInput({
     material: "hudWindow",
     materialOpacity: 0.16,
@@ -13,14 +14,16 @@ export async function present({ input, root, signal, capabilities, overlay }) {
       radius: 5
     }
   })
-  showStatus(root, `Looking up “${input.text}”…`)
+  showStatus(root, localized(messages, "lookingUp", { term: input.text }))
 
   const result = await capabilities.invoke(dictionaryCapability, "lookup", {
     text: input.text
   })
   signal.throwIfAborted()
 
-  if (result.format === "html") {
+  if (result.found === false) {
+    showPlainDefinition(root, result.term, localized(messages, "noDefinition"), null)
+  } else if (result.format === "html") {
     showRichDefinition(root, result.content)
   } else {
     showPlainDefinition(root, result.term, result.content, result.dictionary)
@@ -81,4 +84,9 @@ function showStatus(root, message) {
   status.className = "status"
   status.textContent = message
   root.replaceChildren(status)
+}
+
+// Messages come from i18n.toml in the user's language. A missing message shows its key.
+function localized(messages, key, values = {}) {
+  return (messages[key] ?? key).replace(/\{(\w+)\}/g, (placeholder, name) => values[name] ?? placeholder)
 }

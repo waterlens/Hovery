@@ -927,6 +927,12 @@ final class SemanticSelectionTests: XCTestCase {
         XCTAssertEqual(renderedText.trimmingCharacters(in: .whitespacesAndNewlines), "HELLO")
     }
 
+    func testWarmingUpRecognizesTextSoTheModelsLoad() async throws {
+        let transcripts = try await DocumentOCRService().warmUp()
+        XCTAssertEqual(transcripts.count, 2)
+        XCTAssertTrue(transcripts.first?.contains("text recognition") == true, "\(transcripts)")
+    }
+
     func testVisionDocumentOCRBuildsCompleteHoverHierarchy() async throws {
         let canvasSize = CGSize(width: 1200, height: 600)
         let colorSpace = CGColorSpaceCreateDeviceRGB()

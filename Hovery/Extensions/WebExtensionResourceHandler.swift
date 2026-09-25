@@ -138,9 +138,9 @@ enum WebExtensionResourceError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidRequest: "Invalid extension resource request"
-        case .accessDenied: "Extension resource access denied"
-        case .resourceNotFound: "Extension resource not found"
+        case .invalidRequest: String(localized: "Invalid extension resource request")
+        case .accessDenied: String(localized: "Extension resource access denied")
+        case .resourceNotFound: String(localized: "Extension resource not found")
         }
     }
 }

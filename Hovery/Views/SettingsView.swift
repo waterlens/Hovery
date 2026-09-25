@@ -14,9 +14,33 @@ struct SettingsView: View {
         static let maximumFractionDigits = 3
     }
 
+    private enum Unit {
+        case points
+        case pixels
+        case seconds
+        case multiplier
+        case lineHeights
+
+        var symbol: String {
+            switch self {
+            case .points: String(localized: "pt", comment: "Abbreviation for points, shown after a number field.")
+            case .pixels: String(localized: "px", comment: "Abbreviation for pixels, shown after a number field.")
+            case .seconds: String(localized: "s", comment: "Abbreviation for seconds, shown after a number field.")
+            case .multiplier: "×"
+            case .lineHeights:
+                String(
+                    localized: "× line",
+                    comment: "Shown after a number field whose value is a multiple of the text's line height."
+                )
+            }
+        }
+    }
+
     @ObservedObject var settings: HoverySettings
     @State private var draft: HoveryConfiguration
     @State private var draftBase: HoveryConfiguration
+    /// Not part of the TOML configuration: macOS keeps it with the app's preferences.
+    @State private var interfaceLanguage = InterfaceLanguagePreference().language
     @FocusState private var isEditingNumber: Bool
 
     init(settings: HoverySettings) {
@@ -40,6 +64,25 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("General") {
+                    Picker("Language", selection: $interfaceLanguage) {
+                        Text("System Language").tag(InterfaceLanguage.system)
+                        // Each language is named in itself, so people can find their own.
+                        Text(verbatim: "English").tag(InterfaceLanguage.english)
+                        Text(verbatim: "简体中文").tag(InterfaceLanguage.simplifiedChinese)
+                    }
+                    .onChange(of: interfaceLanguage) { _, language in
+                        InterfaceLanguagePreference().setLanguage(language)
+                    }
+                    if languageNeedsRestart {
+                        LabeledContent {
+                            Button("Restart Now", action: HoveryRelauncher.relaunch)
+                        } label: {
+                            Text("Restart Hovery to use the new language.")
+                        }
+                    }
+                }
+
                 Section("Debugging") {
                     Toggle("Debug Overlay", isOn: binding(\.overlay.debugEnabled))
                 }
@@ -54,35 +97,39 @@ struct SettingsView: View {
                     Text("Click the field and press a modifier combination. Press Delete to clear it.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text("Hovery does not reserve these keys; the frontmost app continues to receive them.")
+                    Text("While results are shown, hold these keys and press 1–9 to switch between extensions.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 Section("Capture Region") {
-                    doubleField("Last-resort fallback width", \.capture.width, unit: "pt")
-                    doubleField("Last-resort fallback height", \.capture.height, unit: "pt")
-                    doubleField("Maximum pixel width", \.capture.maximumPixelWidth, unit: "px")
-                    doubleField("Maximum pixel height", \.capture.maximumPixelHeight, unit: "px")
-                    doubleField("Screen metadata cache", \.capture.contentCacheLifetime, unit: "s")
+                    doubleField(String(localized: "Last-resort fallback width"), \.capture.width, unit: .points)
+                    doubleField(String(localized: "Last-resort fallback height"), \.capture.height, unit: .points)
+                    doubleField(String(localized: "Maximum pixel width"), \.capture.maximumPixelWidth, unit: .pixels)
+                    doubleField(String(localized: "Maximum pixel height"), \.capture.maximumPixelHeight, unit: .pixels)
+                    doubleField(
+                        String(localized: "Screen metadata cache"),
+                        \.capture.contentCacheLifetime,
+                        unit: .seconds
+                    )
                 }
 
                 Section("Hover Timing") {
-                    doubleField("Movement tolerance", \.interaction.movementThreshold, unit: "pt")
-                    doubleField("Scan delay", \.interaction.scanDelay, unit: "s")
-                    doubleField("Refresh interval", \.interaction.refreshInterval, unit: "s")
-                    doubleField("Polling interval", \.interaction.pollingInterval, unit: "s")
+                    doubleField(String(localized: "Movement tolerance"), \.interaction.movementThreshold, unit: .points)
+                    doubleField(String(localized: "Scan delay"), \.interaction.scanDelay, unit: .seconds)
+                    doubleField(String(localized: "Refresh interval"), \.interaction.refreshInterval, unit: .seconds)
+                    doubleField(String(localized: "Polling interval"), \.interaction.pollingInterval, unit: .seconds)
                     doubleField(
-                        "Result movement multiplier",
+                        String(localized: "Result movement multiplier"),
                         \.interaction.resultMovementToleranceMultiplier,
-                        unit: "×"
+                        unit: .multiplier
                     )
                 }
 
                 Section("Vision OCR") {
-                    doubleField("Minimum text height", \.recognition.minimumTextHeightFraction)
-                    intField("Maximum candidates", \.recognition.maximumCandidateCount)
-                    doubleField("Fallback confidence", \.recognition.fallbackConfidence)
+                    doubleField(String(localized: "Minimum text height"), \.recognition.minimumTextHeightFraction)
+                    intField(String(localized: "Maximum candidates"), \.recognition.maximumCandidateCount)
+                    doubleField(String(localized: "Fallback confidence"), \.recognition.fallbackConfidence)
                     Toggle(
                         "Detect language automatically",
                         isOn: binding(\.recognition.automaticallyDetectLanguage)
@@ -94,25 +141,64 @@ struct SettingsView: View {
                 }
 
                 Section("Pointer Hit Testing") {
-                    doubleField("Horizontal padding scale", \.regionSelection.magneticHorizontalScale, unit: "× line")
-                    doubleField("Vertical padding scale", \.regionSelection.magneticVerticalScale, unit: "× line")
-                    doubleField("Minimum padding", \.regionSelection.minimumMagneticPadding, unit: "pt")
-                    doubleField("Maximum horizontal padding", \.regionSelection.maximumHorizontalPadding, unit: "pt")
-                    doubleField("Maximum vertical padding", \.regionSelection.maximumVerticalPadding, unit: "pt")
-                    doubleField("Direct-hit score", \.regionSelection.directHitScore)
-                    doubleField("Nearby-hit score", \.regionSelection.nearbyHitScore)
-                    doubleField("Confidence weight", \.regionSelection.confidenceWeight)
-                    doubleField("Distance penalty", \.regionSelection.distancePenalty)
-                    doubleField("Vertical-center penalty", \.regionSelection.verticalCenterPenalty)
+                    doubleField(
+                        String(localized: "Horizontal padding scale"),
+                        \.regionSelection.magneticHorizontalScale,
+                        unit: .lineHeights
+                    )
+                    doubleField(
+                        String(localized: "Vertical padding scale"),
+                        \.regionSelection.magneticVerticalScale,
+                        unit: .lineHeights
+                    )
+                    doubleField(
+                        String(localized: "Minimum padding"),
+                        \.regionSelection.minimumMagneticPadding,
+                        unit: .points
+                    )
+                    doubleField(
+                        String(localized: "Maximum horizontal padding"),
+                        \.regionSelection.maximumHorizontalPadding,
+                        unit: .points
+                    )
+                    doubleField(
+                        String(localized: "Maximum vertical padding"),
+                        \.regionSelection.maximumVerticalPadding,
+                        unit: .points
+                    )
+                    doubleField(String(localized: "Direct-hit score"), \.regionSelection.directHitScore)
+                    doubleField(String(localized: "Nearby-hit score"), \.regionSelection.nearbyHitScore)
+                    doubleField(String(localized: "Confidence weight"), \.regionSelection.confidenceWeight)
+                    doubleField(String(localized: "Distance penalty"), \.regionSelection.distancePenalty)
+                    doubleField(String(localized: "Vertical-center penalty"), \.regionSelection.verticalCenterPenalty)
                 }
 
                 Section("Block Grouping") {
-                    doubleField("Fallback line height", \.regionSelection.fallbackLineHeight, unit: "pt")
-                    doubleField("Minimum line height", \.regionSelection.minimumLineHeight, unit: "pt")
-                    doubleField("Maximum vertical gap", \.regionSelection.blockMaximumVerticalGap, unit: "× line")
-                    doubleField("Edge alignment tolerance", \.regionSelection.blockAlignmentTolerance, unit: "× line")
-                    doubleField("Minimum horizontal overlap", \.regionSelection.blockMinimumHorizontalOverlap)
-                    doubleField("Same-column overlap", \.regionSelection.sameColumnMinimumOverlap)
+                    doubleField(
+                        String(localized: "Fallback line height"),
+                        \.regionSelection.fallbackLineHeight,
+                        unit: .points
+                    )
+                    doubleField(
+                        String(localized: "Minimum line height"),
+                        \.regionSelection.minimumLineHeight,
+                        unit: .points
+                    )
+                    doubleField(
+                        String(localized: "Maximum vertical gap"),
+                        \.regionSelection.blockMaximumVerticalGap,
+                        unit: .lineHeights
+                    )
+                    doubleField(
+                        String(localized: "Edge alignment tolerance"),
+                        \.regionSelection.blockAlignmentTolerance,
+                        unit: .lineHeights
+                    )
+                    doubleField(
+                        String(localized: "Minimum horizontal overlap"),
+                        \.regionSelection.blockMinimumHorizontalOverlap
+                    )
+                    doubleField(String(localized: "Same-column overlap"), \.regionSelection.sameColumnMinimumOverlap)
                 }
             }
             .formStyle(.grouped)
@@ -123,6 +209,11 @@ struct SettingsView: View {
             draft = configuration
             draftBase = configuration
         }
+    }
+
+    /// macOS applies the interface language when Hovery launches.
+    private var languageNeedsRestart: Bool {
+        InterfaceLanguagePreference.localization(for: interfaceLanguage) != Bundle.main.preferredLocalizations.first
     }
 
     private var settingsActionBar: some View {
@@ -167,7 +258,7 @@ struct SettingsView: View {
     private func doubleField(
         _ title: String,
         _ keyPath: WritableKeyPath<HoveryConfiguration, Double>,
-        unit: String? = nil
+        unit: Unit? = nil
     ) -> some View {
         LabeledContent(title) {
             HStack(spacing: Layout.fieldSpacing) {
@@ -183,7 +274,7 @@ struct SettingsView: View {
                     .frame(width: Layout.fieldWidth)
                     .focused($isEditingNumber)
                 if let unit {
-                    Text(unit)
+                    Text(unit.symbol)
                         .foregroundStyle(.secondary)
                         .fixedSize()
                 }
@@ -310,9 +401,11 @@ private final class ModifierRecorderControl: NSTextField {
     }
 
     private func updateLabel() {
-        stringValue = modifiers.isEmpty ? "None" : modifiers.map(\.symbol).joined()
+        stringValue = modifiers.isEmpty
+            ? String(localized: "None", comment: "Shown when no modifier keys are required.")
+            : modifiers.map(\.symbol).joined()
         toolTip = modifiers.isEmpty
-            ? "No modifier keys are required"
+            ? String(localized: "No modifier keys are required")
             : modifiers.map(\.displayName).joined(separator: " + ")
     }
 

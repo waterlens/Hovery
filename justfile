@@ -58,7 +58,12 @@ build-dictionary-unsigned configuration="Debug": generate-dictionary
     xcodebuild -project "{{dictionary_project}}" -scheme AppleDictionaryExtension -configuration "{{configuration}}" -destination '{{destination}}' -derivedDataPath "{{dictionary_derived_data}}" CODE_SIGNING_ALLOWED=NO build
 
 # Run all unsigned test suites without triggering certificate access.
-test: test-hovery test-dictionary test-translator
+test: check-localizations test-hovery test-dictionary test-translator
+
+# Check that every Hovery string has a Simplified Chinese translation and the catalog has no unused strings.
+check-localizations configuration="Debug": generate-hovery
+    xcodebuild -quiet -project "{{hovery_project}}" -scheme Hovery -configuration "{{configuration}}" -destination '{{destination}}' -derivedDataPath "{{hovery_derived_data}}" CODE_SIGNING_ALLOWED=NO build
+    node "{{root}}/Scripts/check-localizations.mjs" "{{hovery_derived_data}}" "{{configuration}}"
 
 # Run the Hovery test suite without signing.
 test-hovery configuration="Debug": generate-hovery

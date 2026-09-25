@@ -23,8 +23,8 @@ enum CaptureError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noDisplay: "No display contains the pointer."
-        case .ownApplicationWindow: "Hovery does not capture its own windows."
+        case .noDisplay: String(localized: "No display contains the pointer.")
+        case .ownApplicationWindow: String(localized: "Hovery does not capture its own windows.")
         }
     }
 }

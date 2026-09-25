@@ -4,6 +4,28 @@ import XCTest
 
 final class AppleDictionaryHelperTests: XCTestCase {
     func testLookupReturnsAFormattedDefinition() throws {
+        let result = try lookup("install-extensions")
+        let content = try XCTUnwrap(result["content"] as? String)
+        let format = try XCTUnwrap(result["format"] as? String)
+
+        XCTAssertEqual(result["found"] as? Bool, true)
+        XCTAssertEqual(result["term"] as? String, "install")
+        XCTAssertFalse(content.isEmpty)
+        XCTAssertTrue(["html", "text"].contains(format))
+    }
+
+    func testLookupReportsAMissWithoutText() throws {
+        let result = try lookup("qxzvkjwpqlmz")
+
+        // The page describes a miss in the user's language, so the helper sends no text for it.
+        XCTAssertEqual(result["found"] as? Bool, false)
+        XCTAssertEqual(result["term"] as? String, "qxzvkjwpqlmz")
+        XCTAssertNil(result["content"])
+        XCTAssertNil(result["format"])
+    }
+
+    /// Sends one lookup request to a new helper process and returns the result of its response.
+    private func lookup(_ text: String) throws -> [String: Any] {
         let executableURL = Bundle(for: Self.self).bundleURL
             .deletingLastPathComponent()
             .appendingPathComponent("AppleDictionaryHelper", isDirectory: false)
@@ -25,7 +47,7 @@ final class AppleDictionaryHelperTests: XCTestCase {
             "id": "lookup-test",
             "capability": "org.hovery.capability.system-dictionary",
             "method": "lookup",
-            "arguments": ["text": "install-extensions"]
+            "arguments": ["text": text]
         ]
         var requestData = try JSONSerialization.data(withJSONObject: request)
         requestData.append(0x0A)
@@ -40,7 +62,8 @@ final class AppleDictionaryHelperTests: XCTestCase {
                 buffer.count
             )
             guard count > 0 else {
-                return XCTFail("The helper exited before returning a complete response.")
+                XCTFail("The helper exited before returning a complete response.")
+                return [:]
             }
             responseData.append(contentsOf: buffer.prefix(count))
         }
@@ -48,14 +71,7 @@ final class AppleDictionaryHelperTests: XCTestCase {
         let object = try XCTUnwrap(
             try JSONSerialization.jsonObject(with: Data(line)) as? [String: Any]
         )
-        let result = try XCTUnwrap(object["result"] as? [String: Any])
-        let content = try XCTUnwrap(result["content"] as? String)
-        let format = try XCTUnwrap(result["format"] as? String)
-
         XCTAssertEqual(object["id"] as? String, "lookup-test")
-        XCTAssertEqual(result["term"] as? String, "install")
-        XCTAssertFalse(content.isEmpty)
-        XCTAssertTrue(["html", "text"].contains(format))
-        XCTAssertFalse(content.contains("No definition found"))
+        return try XCTUnwrap(object["result"] as? [String: Any])
     }
 }

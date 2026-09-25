@@ -18,6 +18,8 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
     var contentHeightDidChange: ((_ requestID: String, _ height: CGFloat) -> Void)?
     var failureDidOccur: ((String) -> Void)?
     var selectionOverlayDidChange: ((_ requestID: String, _ items: [WebExtensionOverlayItem]?) -> Void)?
+    /// The latest request, once `present()` finished it without being aborted.
+    private(set) var completedRequestID: String?
 
     private let resourceHandler: WebExtensionResourceHandler
     private let contentSizeHandler = WebExtensionContentSizeHandler()
@@ -29,6 +31,9 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
     private var hasStartedLoading = false
     private var isMounted = false
     private var pendingRequest: [String: Any]?
+    /// Advances with every presentation and cancellation, so that a finished `present()` only
+    /// counts when nothing superseded it.
+    private var presentationGeneration = 0
 
     /// Settings are fixed for the lifetime of a runtime; the coordinator creates a new runtime when they change.
     /// Without resolved settings, the extension receives its manifest defaults.
@@ -120,6 +125,8 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
 
     func present(request: [String: Any]) {
         pendingRequest = request
+        completedRequestID = nil
+        presentationGeneration += 1
         ensureLoaded()
         guard isMounted else { return }
         pendingRequest = nil
@@ -128,6 +135,8 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
 
     func cancel() {
         pendingRequest = nil
+        completedRequestID = nil
+        presentationGeneration += 1
         capabilityBroker.cancelPendingRequests()
         guard isMounted else { return }
         Task { [self] in
@@ -224,6 +233,7 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
         do {
             _ = try await webView.callAsyncJavaScript(
                 """
+                document.documentElement.lang = extensionInfo.language;
                 const extensionModule = await import(moduleURL);
                 if (typeof extensionModule.present !== "function") {
                     throw new TypeError("The ESM entry must export present(request)");
@@ -255,9 +265,14 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                         }
                     }
                 });
+                const extension = Object.freeze({
+                    ...extensionInfo,
+                    messages: Object.freeze({ ...extensionInfo.messages })
+                });
                 const runtime = {
                     module: extensionModule,
                     root,
+                    extension,
                     settings: Object.freeze({ ...extensionSettings }),
                     capabilities: createCapabilities(),
                     createCapabilities,
@@ -269,7 +284,7 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                 if (typeof extensionModule.mount === "function") {
                     await extensionModule.mount({
                         root,
-                        extension: Object.freeze(extensionInfo),
+                        extension,
                         settings: runtime.settings,
                         capabilities: runtime.capabilities
                     });
@@ -284,7 +299,9 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                         "id": descriptor.identifier,
                         "name": descriptor.name,
                         "capabilities": descriptor.allowedCapabilities,
-                        "selectionOverlay": descriptor.allowsSelectionOverlay
+                        "selectionOverlay": descriptor.allowsSelectionOverlay,
+                        "language": descriptor.language,
+                        "messages": descriptor.messages
                     ],
                     "extensionSettings": settings.scriptValues
                 ],
@@ -303,10 +320,12 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
     }
 
     private func invokePresent(_ request: [String: Any]) {
+        let requestID = request["id"] as? String
+        let generation = presentationGeneration
         Task { [weak self] in
             guard let self else { return }
             do {
-                _ = try await webView.callAsyncJavaScript(
+                let completed = try await webView.callAsyncJavaScript(
                     """
                     const runtime = globalThis[namespace];
                     if (!runtime) {
@@ -396,6 +415,7 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                     });
                     const value = Object.freeze({
                         ...request,
+                        extension: runtime.extension,
                         root: runtime.root,
                         signal: controller.signal,
                         settings: runtime.settings,
@@ -415,6 +435,7 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                             runtime.controller = null;
                         }
                     }
+                    return !controller.signal.aborted;
                     """,
                     arguments: [
                         "namespace": Runtime.namespace,
@@ -428,6 +449,9 @@ final class WebExtensionRuntimeController: NSViewController, WKNavigationDelegat
                     in: nil,
                     contentWorld: .page
                 )
+                if completed as? Bool == true, generation == presentationGeneration {
+                    completedRequestID = requestID
+                }
             } catch {
                 reportFailure(error.localizedDescription)
             }

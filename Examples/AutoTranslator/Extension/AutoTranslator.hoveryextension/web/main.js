@@ -1,5 +1,6 @@
+import { createMessages, describeFailure } from "./messages.js"
 import { TranslationCache } from "./translations.js"
-import { TranslationError, translate } from "./translator.js"
+import { translate } from "./translator.js"
 
 const requestDelay = 150
 const copiedFeedbackDuration = 1200
@@ -21,13 +22,14 @@ const highlightStyle = {
 const translations = new TranslationCache({ perform: translate, delay: requestDelay })
 
 // Hovery versions without extension settings pass no settings; the page then asks for setup.
-export async function present({ input, selections, root, signal, overlay, settings = {} }) {
+export async function present({ input, selections, root, signal, overlay, extension, settings = {} }) {
   const selection = selections?.[settings.granularity] ?? input
   const text = selection.text.trim()
   overlay.show(selection, highlightStyle)
-  const view = createView(root, text, settings)
+  const messages = createMessages(extension)
+  const view = createView(root, text, settings.model?.trim() || extension?.name, messages)
 
-  const missing = missingSettings(settings)
+  const missing = missingSettings(settings, messages)
   if (missing.length > 0) {
     view.showSetup(missing)
     return
@@ -61,22 +63,25 @@ export function unmount({ root }) {
   root.replaceChildren()
 }
 
-function missingSettings(settings) {
+function missingSettings(settings, messages) {
   const missing = []
-  if (!settings.baseURL?.trim()) missing.push("Base URL")
-  if (!settings.model?.trim()) missing.push("Model")
+  if (!settings.baseURL?.trim()) missing.push(messages.text("setupBaseURL"))
+  if (!settings.model?.trim()) missing.push(messages.text("setupModel"))
   return missing
 }
 
-function createView(root, text, settings) {
+function createView(root, text, serviceName, messages) {
   const source = element("section", "card")
-  source.append(element("p", "text source", text), actionBar(copyButton("Copy Original", () => text)))
+  source.append(
+    element("p", "text source", text),
+    actionBar(copyButton(messages.text("copyOriginal"), () => text, messages))
+  )
 
   const header = element("header", "card-header")
-  header.append(serviceIcon(), element("span", "service", settings.model?.trim() || "Auto Translator"))
-  const status = element("p", "note", "Translating…")
+  header.append(serviceIcon(), element("span", "service", serviceName))
+  const status = element("p", "note", messages.text("translating"))
   const output = element("p", "text output")
-  const actions = actionBar(copyButton("Copy Translation", () => output.textContent))
+  const actions = actionBar(copyButton(messages.text("copyTranslation"), () => output.textContent, messages))
   actions.hidden = true
   const result = element("section", "card")
   result.append(header, status, output, actions)
@@ -99,13 +104,17 @@ function createView(root, text, settings) {
     showSetup(missing) {
       result.replaceChildren(
         header,
-        element("p", "note", `Click the gear button above and enter the ${formatList(missing)} to start translating.`)
+        element("p", "note", messages.text("setupRequired", { settings: messages.list(missing) }))
       )
     },
 
     showError(error) {
-      const failure = error instanceof TranslationError ? error : new TranslationError(String(error?.message ?? error))
-      result.replaceChildren(header, element("p", "failure", "Couldn’t Translate"), element("p", "message", failure.message))
+      const failure = describeFailure(error, messages)
+      result.replaceChildren(
+        header,
+        element("p", "failure", messages.text("translationFailed")),
+        element("p", "message", failure.message)
+      )
       if (failure.hint) {
         result.append(element("p", "note", failure.hint))
       }
@@ -119,7 +128,7 @@ function actionBar(...buttons) {
   return bar
 }
 
-function copyButton(label, text) {
+function copyButton(label, text, messages) {
   const button = element("button", "icon-button")
   button.type = "button"
   button.title = label
@@ -130,7 +139,7 @@ function copyButton(label, text) {
     const copied = await copyText(text())
     clearTimeout(reset)
     button.replaceChildren(copied ? checkmarkIcon() : copyIcon())
-    button.title = copied ? "Copied" : "Couldn’t Copy"
+    button.title = copied ? messages.text("copied") : messages.text("copyFailed")
     reset = setTimeout(() => {
       button.replaceChildren(copyIcon())
       button.title = label
@@ -190,10 +199,6 @@ function icon(className, shapes) {
     svg.append(shape)
   }
   return svg
-}
-
-function formatList(items) {
-  return new Intl.ListFormat("en", { type: "conjunction" }).format(items)
 }
 
 function element(name, className, text) {

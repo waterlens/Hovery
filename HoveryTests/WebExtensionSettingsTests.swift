@@ -421,7 +421,11 @@ final class WebExtensionSettingsTests: XCTestCase {
         let port = try await server.start()
         defer { server.stop() }
 
-        let descriptor = try WebExtensionCatalog.load(packageURL: Self.autoTranslatorPackageURL)
+        // The page's text follows the language preferences; this test checks the English text.
+        let descriptor = try WebExtensionCatalog.load(
+            packageURL: Self.autoTranslatorPackageURL,
+            preferredLanguages: ["en"]
+        )
         let settings = WebExtensionResolvedSettings(
             descriptors: descriptor.settings,
             storedValues: [
@@ -460,7 +464,10 @@ final class WebExtensionSettingsTests: XCTestCase {
 
     @MainActor
     func testAutoTranslatorAsksForSetupWithoutAModel() async throws {
-        let descriptor = try WebExtensionCatalog.load(packageURL: Self.autoTranslatorPackageURL)
+        let descriptor = try WebExtensionCatalog.load(
+            packageURL: Self.autoTranslatorPackageURL,
+            preferredLanguages: ["en"]
+        )
         let runtime = WebExtensionRuntimeController(descriptor: descriptor)
         defer { runtime.unmount() }
         XCTAssertEqual(runtime.settings.missingRequiredKeys, ["model"])
@@ -525,7 +532,7 @@ final class WebExtensionSettingsTests: XCTestCase {
 }
 
 /// A loopback HTTP server that answers CORS preflights and Chat Completions requests.
-private final class MockChatCompletionsServer: @unchecked Sendable {
+final class MockChatCompletionsServer: @unchecked Sendable {
     struct Request: Sendable {
         let method: String
         let path: String

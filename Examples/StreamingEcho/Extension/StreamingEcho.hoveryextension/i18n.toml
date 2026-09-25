@@ -1,0 +1,16 @@
+# The manifest's text is English. The page reads these messages from `extension.messages`.
+
+[en.messages]
+paragraph = "Paragraph"
+sentence = "Sentence"
+word = "Word"
+unavailable = "Not available"
+
+[zh-Hans]
+name = "流式回显"
+
+[zh-Hans.messages]
+paragraph = "段落"
+sentence = "句子"
+word = "单词"
+unavailable = "不可用"

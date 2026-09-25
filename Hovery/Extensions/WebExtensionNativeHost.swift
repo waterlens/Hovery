@@ -19,29 +19,29 @@ enum WebExtensionNativeHostError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingExecutable:
-            "The extension does not declare a native executable."
+            String(localized: "The extension does not declare a native executable.")
         case .executableNotRunnable(let path):
-            "The native extension executable cannot be run: \(path)"
+            String(localized: "The native extension executable cannot be run: \(path)")
         case .invalidSignature(let message):
-            "The native extension signature is invalid: \(message)"
+            String(localized: "The native extension signature is invalid: \(message)")
         case .launchFailed(let message):
-            "The native extension could not start: \(message)"
+            String(localized: "The native extension could not start: \(message)")
         case .invalidRequest:
-            "The native extension request is not valid JSON."
+            String(localized: "The native extension request is not valid JSON.")
         case .requestTooLarge:
-            "The native extension request exceeds the configured size limit."
+            String(localized: "The native extension request exceeds the configured size limit.")
         case .responseTooLarge:
-            "The native extension response exceeds the configured size limit."
+            String(localized: "The native extension response exceeds the configured size limit.")
         case .invalidResponse:
-            "The native extension returned an invalid response."
+            String(localized: "The native extension returned an invalid response.")
         case .helperError(let message):
             message
         case .timedOut:
-            "The native extension request timed out."
+            String(localized: "The native extension request timed out.")
         case .cancelled:
-            "The native extension request was cancelled."
+            String(localized: "The native extension request was cancelled.")
         case .terminated:
-            "The native extension process exited."
+            String(localized: "The native extension process exited.")
         }
     }
 }
@@ -315,7 +315,7 @@ private enum WebExtensionNativeSignatureVerifier {
         let applicationTeam = currentApplicationTeamIdentifier()
         if let applicationTeam, helperTeam != applicationTeam {
             throw WebExtensionNativeHostError.invalidSignature(
-                "The helper must be signed by Team \(applicationTeam)."
+                String(localized: "The helper must be signed by Team \(applicationTeam).")
             )
         }
     }

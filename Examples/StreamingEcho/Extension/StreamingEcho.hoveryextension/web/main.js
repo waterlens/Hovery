@@ -4,7 +4,7 @@ export function mount({ root, extension }) {
   root.dataset.extensionId = extension.id
 }
 
-export async function present({ input, selections, root, signal, overlay }) {
+export async function present({ input, selections, root, signal, overlay, extension }) {
   overlay.show([
     {
       selection: selections.paragraph,
@@ -44,7 +44,7 @@ export async function present({ input, selections, root, signal, overlay }) {
       }
     }
   ].filter(item => item.selection))
-  const results = createComparison(root, selections, input)
+  const results = createComparison(root, selections, input, extension?.messages)
   await streamSelections(results, signal)
 }
 

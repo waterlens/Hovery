@@ -134,7 +134,10 @@ struct ExtensionSettingsView: View {
         let detail = setting.detail.map { Text($0) }
         switch (problem, detail) {
         case (let problem?, let detail?):
-            return Text("\(problem) \(detail)")
+            return Text(
+                "\(problem) \(detail)",
+                comment: "A problem with a setting's value, then the setting's description."
+            )
         case (let problem?, nil):
             return problem
         case (nil, let detail?):
@@ -160,10 +163,10 @@ struct ExtensionSettingsView: View {
 
     private func problem(for setting: WebExtensionSettingDescriptor) -> String? {
         if setting.type == .url, urlIsInvalid(for: setting) {
-            return "Enter a full URL, such as https://api.example.com/v1."
+            return String(localized: "Enter a full URL, such as https://api.example.com/v1.")
         }
         if setting.isRequired, !setting.isSatisfied(by: setting.normalized(value(for: setting))) {
-            return "Required."
+            return String(localized: "Required.")
         }
         return nil
     }

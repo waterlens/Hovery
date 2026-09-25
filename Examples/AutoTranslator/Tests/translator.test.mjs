@@ -1,6 +1,8 @@
 import assert from "node:assert/strict"
+import { readFile } from "node:fs/promises"
 import { describe, test } from "node:test"
 
+import { createMessages, describeFailure, format } from "../Extension/AutoTranslator.hoveryextension/web/messages.js"
 import { TranslationCache } from "../Extension/AutoTranslator.hoveryextension/web/translations.js"
 import {
   EventStreamParser,
@@ -12,6 +14,7 @@ import {
 } from "../Extension/AutoTranslator.hoveryextension/web/translator.js"
 
 const encoder = new TextEncoder()
+const packageURL = new URL("../Extension/AutoTranslator.hoveryextension/", import.meta.url)
 
 const baseOptions = {
   baseURL: "https://api.example.com/v1",
@@ -60,6 +63,39 @@ function abortableFetch() {
   })
 }
 
+async function rejectsWith(promise, expected) {
+  await assert.rejects(promise, error => {
+    assert.ok(error instanceof TranslationError)
+    for (const [key, value] of Object.entries(expected)) {
+      assert.deepEqual(error[key], value, key)
+    }
+    return true
+  })
+}
+
+/** Reads the messages of `language` from i18n.toml, which uses only one-line strings. */
+async function packageMessages(language) {
+  const source = await readFile(new URL("i18n.toml", packageURL), "utf8")
+  const messages = {}
+  let section
+  for (const line of source.split("\n")) {
+    const header = line.match(/^\[(.+)\]$/)
+    const entry = line.match(/^(\w+) = (".*")$/)
+    if (header) {
+      section = header[1]
+    } else if (entry && section === `${language}.messages`) {
+      messages[entry[1]] = JSON.parse(entry[2])
+    }
+  }
+  return messages
+}
+
+/** The keys that `pattern`'s first group captures in a file of the package's web directory. */
+async function sourceKeys(file, pattern) {
+  const source = await readFile(new URL(`web/${file}`, packageURL), "utf8")
+  return [...source.matchAll(pattern)].map(match => match[1])
+}
+
 describe("chatCompletionsURL", () => {
   test("appends the Chat Completions path to a base URL", () => {
     assert.equal(chatCompletionsURL("https://api.openai.com/v1"), "https://api.openai.com/v1/chat/completions")
@@ -74,10 +110,15 @@ describe("chatCompletionsURL", () => {
   })
 
   test("rejects values that are not http or https URLs", () => {
-    for (const value of ["api.openai.com/v1", "", "ftp://example.com/v1"]) {
+    const cases = [
+      ["api.openai.com/v1", "invalidBaseURL"],
+      ["", "invalidBaseURL"],
+      ["ftp://example.com/v1", "unsupportedBaseURL"]
+    ]
+    for (const [value, code] of cases) {
       assert.throws(() => chatCompletionsURL(value), error => {
         assert.ok(error instanceof TranslationError)
-        assert.equal(error.kind, "configuration")
+        assert.equal(error.code, code)
         return true
       })
     }
@@ -200,67 +241,88 @@ describe("translate", () => {
     assert.equal(JSON.parse(request.body).stream, false)
   })
 
-  test("reports the service's error message with a hint", async () => {
-    await assert.rejects(
+  test("reports the service's error message with the HTTP status", async () => {
+    await rejectsWith(
       translate(baseOptions, {
         fetch: async () => jsonResponse({ error: { message: "Incorrect API key provided." } }, 401)
       }),
-      error => {
-        assert.ok(error instanceof TranslationError)
-        assert.equal(error.kind, "http")
-        assert.equal(error.status, 401)
-        assert.equal(error.message, "Incorrect API key provided.")
-        assert.match(error.hint, /API key/)
-        return true
-      }
+      { code: "http", status: 401, serviceMessage: "Incorrect API key provided." }
     )
   })
 
   test("does not show HTML error pages", async () => {
-    await assert.rejects(
+    await rejectsWith(
       translate(baseOptions, {
         fetch: async () => new Response("<html><body>Not Found</body></html>", { status: 404 })
       }),
-      error => {
-        assert.equal(error.message, "The service responded with HTTP 404.")
-        assert.match(error.hint, /\/v1/)
-        return true
-      }
+      { code: "http", status: 404, serviceMessage: undefined }
+    )
+  })
+
+  test("reports plain-text error bodies", async () => {
+    await rejectsWith(
+      translate(baseOptions, {
+        fetch: async () => new Response("  Rate limit exceeded  ", { status: 429 })
+      }),
+      { code: "http", status: 429, serviceMessage: "Rate limit exceeded" }
     )
   })
 
   test("reports errors sent inside a stream", async () => {
-    await assert.rejects(
+    await rejectsWith(
       translate(baseOptions, {
         fetch: async () => streamedResponse([
           deltaEvent("Partial"),
           `data: ${JSON.stringify({ error: { message: "Model overloaded." } })}\n\n`
         ])
       }),
-      { name: "TranslationError", message: "Model overloaded." }
+      { name: "TranslationError", code: "serviceError", serviceMessage: "Model overloaded." }
+    )
+  })
+
+  test("reports errors in a complete response, even without a message", async () => {
+    await rejectsWith(
+      translate({ ...baseOptions, stream: false }, { fetch: async () => jsonResponse({ error: {} }) }),
+      { code: "serviceError", serviceMessage: undefined }
+    )
+  })
+
+  test("reports malformed, unexpected, and empty responses", async () => {
+    await rejectsWith(
+      translate(baseOptions, { fetch: async () => streamedResponse(["data: {not json\n\n"]) }),
+      { code: "malformedStream" }
+    )
+    await rejectsWith(
+      translate({ ...baseOptions, stream: false }, { fetch: async () => jsonResponse({ choices: [] }) }),
+      { code: "unexpectedResponse" }
+    )
+    await rejectsWith(
+      translate(baseOptions, { fetch: async () => streamedResponse([deltaEvent("<think>Hmm</think>  ")]) }),
+      { code: "emptyTranslation" }
     )
   })
 
   test("explains connection failures", async () => {
-    await assert.rejects(
+    await rejectsWith(
       translate(baseOptions, {
         fetch: async () => { throw new TypeError("Load failed") }
       }),
-      error => {
-        assert.equal(error.kind, "network")
-        assert.equal(error.message, "Could not connect to https://api.example.com.")
-        return true
-      }
+      { code: "network", origin: "https://api.example.com" }
+    )
+  })
+
+  test("keeps unexpected failures as the cause", async () => {
+    const cause = new RangeError("Unexpected failure")
+    await rejectsWith(
+      translate(baseOptions, { fetch: async () => { throw cause } }),
+      { code: "unknown", cause }
     )
   })
 
   test("times out when the service stops responding", async () => {
-    await assert.rejects(
+    await rejectsWith(
       translate({ ...baseOptions, timeout: 0.05 }, { fetch: abortableFetch() }),
-      error => {
-        assert.equal(error.kind, "timeout")
-        return true
-      }
+      { code: "timeout", timeout: 0.05 }
     )
   })
 
@@ -356,14 +418,91 @@ describe("TranslationCache", () => {
       capacity: 1,
       perform: async ({ text }) => {
         attempts += 1
-        if (attempts === 1) throw new TranslationError("Temporary failure")
+        if (attempts === 1) throw new TranslationError("http", { status: 503 })
         return text.toUpperCase()
       }
     })
-    await assert.rejects(cache.translate(request), { message: "Temporary failure" })
+    await assert.rejects(cache.translate(request), { code: "http", status: 503 })
     assert.equal(await cache.translate(request), "HELLO WORLD")
     assert.equal(await cache.translate({ ...request, text: "other" }), "OTHER")
     assert.equal(await cache.translate(request), "HELLO WORLD")
     assert.equal(attempts, 4)
+  })
+})
+
+describe("messages", () => {
+  test("fills in placeholders and keeps unknown ones", () => {
+    assert.equal(format("{status} of {total}", { status: 404 }), "404 of {total}")
+    assert.equal(format("No placeholders"), "No placeholders")
+  })
+
+  test("looks up messages and lists in the extension's language", () => {
+    const chinese = createMessages({ language: "zh-Hans", messages: { greeting: "你好，{name}" } })
+    assert.equal(chinese.text("greeting", { name: "Hovery" }), "你好，Hovery")
+    assert.equal(chinese.text("missing"), "missing")
+    assert.equal(chinese.list(["“API 地址”", "“模型”"]), "“API 地址”和“模型”")
+
+    const english = createMessages(undefined)
+    assert.equal(english.text("copied"), "copied")
+    assert.equal(english.list(["Base URL", "Model"]), "Base URL and Model")
+  })
+
+  test("describes each failure with the package's messages", async () => {
+    const messages = createMessages({ language: "en", messages: await packageMessages("en") })
+    const explain = error => describeFailure(error, messages)
+
+    assert.deepEqual(explain(new TranslationError("invalidBaseURL")), {
+      message: "The Base URL is not a valid URL.",
+      hint: "Enter a full URL, such as https://api.openai.com/v1."
+    })
+    assert.deepEqual(explain(new TranslationError("unsupportedBaseURL")), {
+      message: "The Base URL must start with https:// or http://.",
+      hint: undefined
+    })
+    assert.deepEqual(explain(new TranslationError("timeout", { timeout: 30 })), {
+      message: "The service did not respond within 30 seconds.",
+      hint: "Try again, or increase the timeout in Auto Translator’s settings."
+    })
+    assert.deepEqual(explain(new TranslationError("network", { origin: "https://api.example.com" })), {
+      message: "Could not connect to https://api.example.com.",
+      hint: "Check the Base URL and your network connection. The service must allow cross-origin requests (CORS)."
+    })
+    assert.deepEqual(
+      explain(new TranslationError("http", { status: 401, serviceMessage: "Incorrect API key provided." })),
+      { message: "Incorrect API key provided.", hint: "Check the API key in Auto Translator’s settings." }
+    )
+    assert.deepEqual(explain(new TranslationError("http", { status: 404 })), {
+      message: "The service responded with HTTP 404.",
+      hint: "Check the Base URL (it usually ends with a version path such as /v1) and the model name."
+    })
+    assert.equal(explain(new TranslationError("http", { status: 403 })).hint, "Check the API key in Auto Translator’s settings.")
+    assert.equal(explain(new TranslationError("http", { status: 429 })).hint, "The service is limiting requests. Try again in a moment.")
+    assert.equal(explain(new TranslationError("http", { status: 503 })).hint, "The service had a problem. Try again later.")
+    assert.equal(explain(new TranslationError("http", { status: 400 })).hint, undefined)
+    assert.equal(explain(new TranslationError("serviceError")).message, "The service reported an error.")
+    assert.equal(
+      explain(new TranslationError("serviceError", { serviceMessage: "Model overloaded." })).message,
+      "Model overloaded."
+    )
+    assert.equal(explain(new TranslationError("malformedStream")).message, "The service sent a malformed streaming response.")
+    assert.equal(explain(new TranslationError("unexpectedResponse")).message, "The service returned an unexpected response.")
+    assert.equal(explain(new TranslationError("emptyTranslation")).message, "The service returned an empty translation.")
+    assert.equal(explain(new TranslationError("unknown", { cause: new RangeError("Out of range") })).message, "Out of range")
+    assert.equal(explain(new TranslationError("unknown")).message, "An unknown error occurred.")
+    assert.deepEqual(explain(new TypeError("Load failed")), { message: "Load failed" })
+    assert.deepEqual(explain(undefined), { message: "An unknown error occurred." })
+  })
+
+  test("exist in English and Simplified Chinese for all text the page shows", async () => {
+    const english = await packageMessages("en")
+    const chinese = await packageMessages("zh-Hans")
+    assert.deepEqual(Object.keys(chinese).sort(), Object.keys(english).sort())
+
+    const pageKeys = await sourceKeys("main.js", /\btext\("(\w+)"/g)
+    const codes = await sourceKeys("translator.js", /new TranslationError\("(\w+)"/g)
+    assert.ok(pageKeys.includes("setupRequired") && codes.includes("timeout"))
+    for (const key of [...pageKeys, ...codes, "unknown"]) {
+      assert.ok(key in english, `${key} has no English message`)
+    }
   })
 })

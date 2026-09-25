@@ -1,0 +1,1891 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ %@" : {
+      "comment" : "A problem with a setting's value, then the setting's description.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@%2$@"
+          }
+        }
+      }
+    },
+    "%@ Settings" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”设置"
+          }
+        }
+      }
+    },
+    "%@ contains native code that runs with your account’s access. Only allow it if you trust its source." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@”包含原生代码，这些代码会以你的账户权限运行。请仅在信任其来源时允许。"
+          }
+        }
+      }
+    },
+    "A choice needs at least one option." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "choice 类型的设置至少需要一个选项。"
+          }
+        }
+      }
+    },
+    "About Hovery" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关于 Hovery"
+          }
+        }
+      }
+    },
+    "Accessibility" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辅助功能"
+          }
+        }
+      }
+    },
+    "Accessibility permission required" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要“辅助功能”权限"
+          }
+        }
+      }
+    },
+    "Activation" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "激活"
+          }
+        }
+      }
+    },
+    "Add a .hoveryextension package to the Extensions folder." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将 .hoveryextension 包添加到插件文件夹。"
+          }
+        }
+      }
+    },
+    "Allow Hovery in Login Items to open it automatically when you log in." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在“登录项”中允许 Hovery，以便在你登录时自动打开它。"
+          }
+        }
+      }
+    },
+    "Allow Native Extension?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要允许原生插件吗？"
+          }
+        }
+      }
+    },
+    "Allow and Enable" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许并启用"
+          }
+        }
+      }
+    },
+    "Allowed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允许"
+          }
+        }
+      }
+    },
+    "Another extension uses %@." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另一个插件已在使用标识符“%@”。"
+          }
+        }
+      }
+    },
+    "Apply" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用"
+          }
+        }
+      }
+    },
+    "Approval Required" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要批准"
+          }
+        }
+      }
+    },
+    "Block Grouping" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文本块分组"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
+    },
+    "Capture Region" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "捕捉区域"
+          }
+        }
+      }
+    },
+    "Check Again" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再次检查"
+          }
+        }
+      }
+    },
+    "Choice option values must be unique." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "choice 选项的值必须唯一。"
+          }
+        }
+      }
+    },
+    "Choose which extensions can show results when you hover over text." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择将指针悬停在文本上时可以显示结果的插件。"
+          }
+        }
+      }
+    },
+    "Click the field and press a modifier combination. Press Delete to clear it." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按此栏并按下修饰键组合。按下 Delete 键可将其清除。"
+          }
+        }
+      }
+    },
+    "Command" : {
+      "comment" : "The name of the Command (⌘) key.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command"
+          }
+        }
+      }
+    },
+    "Confidence weight" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置信度权重"
+          }
+        }
+      }
+    },
+    "Configuration Error" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配置错误"
+          }
+        }
+      }
+    },
+    "Contains Native Code" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包含原生代码"
+          }
+        }
+      }
+    },
+    "Control" : {
+      "comment" : "The name of the Control (⌃) key.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control"
+          }
+        }
+      }
+    },
+    "Couldn’t Save Settings" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法存储设置"
+          }
+        }
+      }
+    },
+    "Couldn’t Update Open at Login" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法更新“登录时打开”"
+          }
+        }
+      }
+    },
+    "Debug Overlay" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调试叠层"
+          }
+        }
+      }
+    },
+    "Debugging" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调试"
+          }
+        }
+      }
+    },
+    "Detect language automatically" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动检测语言"
+          }
+        }
+      }
+    },
+    "Direct-hit score" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接命中分数"
+          }
+        }
+      }
+    },
+    "Distance penalty" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "距离惩罚"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        }
+      }
+    },
+    "Edge alignment tolerance" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "边缘对齐容差"
+          }
+        }
+      }
+    },
+    "Enabled" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已启用"
+          }
+        }
+      }
+    },
+    "Enter a full URL, such as https://api.example.com/v1." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入完整的 URL，例如 https://api.example.com/v1。"
+          }
+        }
+      }
+    },
+    "Extension Settings" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件设置"
+          }
+        }
+      }
+    },
+    "Extension error" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件错误"
+          }
+        }
+      }
+    },
+    "Extension resource access denied" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件资源访问被拒绝"
+          }
+        }
+      }
+    },
+    "Extension resource does not exist: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件资源不存在：%@"
+          }
+        }
+      }
+    },
+    "Extension resource must stay inside its package: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件资源必须位于插件包内：%@"
+          }
+        }
+      }
+    },
+    "Extension resource not found" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到插件资源"
+          }
+        }
+      }
+    },
+    "Extensions" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件"
+          }
+        }
+      }
+    },
+    "Extensions…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件…"
+          }
+        }
+      }
+    },
+    "Fallback confidence" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备用置信度"
+          }
+        }
+      }
+    },
+    "Fallback line height" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备用行高"
+          }
+        }
+      }
+    },
+    "General" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通用"
+          }
+        }
+      }
+    },
+    "Globe" : {
+      "comment" : "The name of the Globe (🌐) key.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地球仪"
+          }
+        }
+      }
+    },
+    "Hold %@ to recognize text" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按住 %@ 以识别文本"
+          }
+        }
+      }
+    },
+    "Horizontal padding scale" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水平边距比例"
+          }
+        }
+      }
+    },
+    "Hover Recognition" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "悬停识别"
+          }
+        }
+      }
+    },
+    "Hover Timing" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "悬停时序"
+          }
+        }
+      }
+    },
+    "Hover over visible text" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将指针悬停在可见文本上"
+          }
+        }
+      }
+    },
+    "Hovery" : {
+      "shouldTranslate" : false
+    },
+    "Hovery Permissions" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hovery 权限"
+          }
+        }
+      }
+    },
+    "Hovery does not capture its own windows." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hovery 不会捕捉自身的窗口。"
+          }
+        }
+      }
+    },
+    "Hovery has the permissions required for hover recognition." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hovery 已获得悬停识别所需的权限。"
+          }
+        }
+      }
+    },
+    "Hovery needs the following permissions before hover recognition can run." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hovery 需要以下权限才能运行悬停识别。"
+          }
+        }
+      }
+    },
+    "Invalid extension identifier: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无效的插件标识符：%@"
+          }
+        }
+      }
+    },
+    "Invalid extension network origin: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无效的插件网络来源：%@"
+          }
+        }
+      }
+    },
+    "Invalid extension resource request" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无效的插件资源请求"
+          }
+        }
+      }
+    },
+    "Invalid extension setting %@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Invalid extension setting %1$@: %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无效的插件设置“%1$@”：%2$@"
+          }
+        }
+      }
+    },
+    "Keys must start with a letter and contain only letters, digits, and underscores." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "键必须以字母开头，且只能包含字母、数字和下划线。"
+          }
+        }
+      }
+    },
+    "Language" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语言"
+          }
+        }
+      }
+    },
+    "Last-resort fallback height" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最终备用高度"
+          }
+        }
+      }
+    },
+    "Last-resort fallback width" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最终备用宽度"
+          }
+        }
+      }
+    },
+    "Lets Hovery find content beneath the pointer." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许 Hovery 查找指针下的内容。"
+          }
+        }
+      }
+    },
+    "Lets Hovery read text beneath the pointer." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许 Hovery 读取指针下的文本。"
+          }
+        }
+      }
+    },
+    "Maximum candidates" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大候选数"
+          }
+        }
+      }
+    },
+    "Maximum horizontal padding" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大水平边距"
+          }
+        }
+      }
+    },
+    "Maximum pixel height" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大像素高度"
+          }
+        }
+      }
+    },
+    "Maximum pixel width" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大像素宽度"
+          }
+        }
+      }
+    },
+    "Maximum vertical gap" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大垂直间距"
+          }
+        }
+      }
+    },
+    "Maximum vertical padding" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大垂直边距"
+          }
+        }
+      }
+    },
+    "Minimum horizontal overlap" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小水平重叠"
+          }
+        }
+      }
+    },
+    "Minimum line height" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小行高"
+          }
+        }
+      }
+    },
+    "Minimum padding" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小边距"
+          }
+        }
+      }
+    },
+    "Minimum text height" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小文本高度"
+          }
+        }
+      }
+    },
+    "Missing extension manifest at %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缺少插件清单：%@"
+          }
+        }
+      }
+    },
+    "Movement tolerance" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移动容差"
+          }
+        }
+      }
+    },
+    "Nearby-hit score" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "邻近命中分数"
+          }
+        }
+      }
+    },
+    "Needs Setup: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要设置：%@"
+          }
+        }
+      }
+    },
+    "No Extensions" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有插件"
+          }
+        }
+      }
+    },
+    "No display contains the pointer." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指针不在任何显示器上。"
+          }
+        }
+      }
+    },
+    "No modifier keys are required" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不需要按住修饰键"
+          }
+        }
+      }
+    },
+    "No text under pointer" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指针下没有文本"
+          }
+        }
+      }
+    },
+    "None" : {
+      "comment" : "Shown when no modifier keys are required.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无"
+          }
+        }
+      }
+    },
+    "Not Allowed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未允许"
+          }
+        }
+      }
+    },
+    "OK" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好"
+          }
+        }
+      }
+    },
+    "Only choice settings can declare options." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有 choice 类型的设置可以声明选项。"
+          }
+        }
+      }
+    },
+    "Only number settings can declare a minimum or maximum." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有 number 类型的设置可以声明最小值或最大值。"
+          }
+        }
+      }
+    },
+    "Only url settings can grant network access." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有 url 类型的设置可以授予网络访问权限。"
+          }
+        }
+      }
+    },
+    "Open Extensions Folder" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开插件文件夹"
+          }
+        }
+      }
+    },
+    "Open System Settings" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开系统设置"
+          }
+        }
+      }
+    },
+    "Open TOML File" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 TOML 文件"
+          }
+        }
+      }
+    },
+    "Open at Login" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录时打开"
+          }
+        }
+      }
+    },
+    "Option" : {
+      "comment" : "The name of the Option (⌥) key.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Option"
+          }
+        }
+      }
+    },
+    "Paused" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已暂停"
+          }
+        }
+      }
+    },
+    "Permissions" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "权限"
+          }
+        }
+      }
+    },
+    "Permissions…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "权限…"
+          }
+        }
+      }
+    },
+    "Pin Results" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定结果"
+          }
+        }
+      }
+    },
+    "Pointer Hit Testing" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指针命中测试"
+          }
+        }
+      }
+    },
+    "Polling interval" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轮询间隔"
+          }
+        }
+      }
+    },
+    "Quit Hovery" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "退出 Hovery"
+          }
+        }
+      }
+    },
+    "Reading…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在读取…"
+          }
+        }
+      }
+    },
+    "Ready" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "就绪"
+          }
+        }
+      }
+    },
+    "Refresh interval" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新间隔"
+          }
+        }
+      }
+    },
+    "Reload" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新载入"
+          }
+        }
+      }
+    },
+    "Request Access" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请求访问权限"
+          }
+        }
+      }
+    },
+    "Required modifiers" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所需修饰键"
+          }
+        }
+      }
+    },
+    "Required." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "必填。"
+          }
+        }
+      }
+    },
+    "Restart Hovery to use the new language." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新启动 Hovery 后生效。"
+          }
+        }
+      }
+    },
+    "Restart Now" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即重新启动"
+          }
+        }
+      }
+    },
+    "Restore Defaults" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "恢复默认设置"
+          }
+        }
+      }
+    },
+    "Result movement multiplier" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "结果移动倍数"
+          }
+        }
+      }
+    },
+    "Same-column overlap" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同栏重叠"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "存储"
+          }
+        }
+      }
+    },
+    "Scan delay" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "扫描延迟"
+          }
+        }
+      }
+    },
+    "Screen & System Audio Recording" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录屏与系统录音"
+          }
+        }
+      }
+    },
+    "Screen & System Audio Recording and Accessibility permissions required" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要“录屏与系统录音”和“辅助功能”权限"
+          }
+        }
+      }
+    },
+    "Screen & System Audio Recording permission required" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要“录屏与系统录音”权限"
+          }
+        }
+      }
+    },
+    "Screen metadata cache" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕元数据缓存"
+          }
+        }
+      }
+    },
+    "Secret settings cannot declare a default value." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "secret 类型的设置不能声明默认值。"
+          }
+        }
+      }
+    },
+    "Settings…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置…"
+          }
+        }
+      }
+    },
+    "Shift" : {
+      "comment" : "The name of the Shift (⇧) key.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shift"
+          }
+        }
+      }
+    },
+    "Showing %lld semantic levels" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Showing %lld semantic level"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Showing %lld semantic levels"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "正在显示 %lld 个语义层级"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "System Language" : {
+      "comment" : "A language option that follows the languages chosen in System Settings.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟随系统"
+          }
+        }
+      }
+    },
+    "The Keychain could not store the secret: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "钥匙串无法存储机密信息：%@"
+          }
+        }
+      }
+    },
+    "The default value does not match the %@ type." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认值与 %@ 类型不匹配。"
+          }
+        }
+      }
+    },
+    "The default value is not an http, https, ws, or wss URL." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认值不是 http、https、ws 或 wss URL。"
+          }
+        }
+      }
+    },
+    "The default value is not one of the options." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认值不在选项之中。"
+          }
+        }
+      }
+    },
+    "The default value is outside the allowed range." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认值超出了允许的范围。"
+          }
+        }
+      }
+    },
+    "The extension %@ is no longer installed." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件“%@”已被移除。"
+          }
+        }
+      }
+    },
+    "The extension did not declare the %@ capability." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该插件未声明“%@”功能。"
+          }
+        }
+      }
+    },
+    "The extension does not declare a native executable." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该插件未声明原生可执行文件。"
+          }
+        }
+      }
+    },
+    "The extension sent an invalid capability request." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该插件发送了无效的功能请求。"
+          }
+        }
+      }
+    },
+    "The helper must be signed by Team %@." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辅助程序必须由团队 %@ 签名。"
+          }
+        }
+      }
+    },
+    "The key is declared more than once." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该键被声明了多次。"
+          }
+        }
+      }
+    },
+    "The maximum must be a number." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大值必须是数字。"
+          }
+        }
+      }
+    },
+    "The minimum is greater than the maximum." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小值大于最大值。"
+          }
+        }
+      }
+    },
+    "The minimum must be a number." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最小值必须是数字。"
+          }
+        }
+      }
+    },
+    "The native extension could not start: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原生插件无法启动：%@"
+          }
+        }
+      }
+    },
+    "The native extension executable cannot be run: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法运行原生插件的可执行文件：%@"
+          }
+        }
+      }
+    },
+    "The native extension process exited." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原生插件进程已退出。"
+          }
+        }
+      }
+    },
+    "The native extension request exceeds the configured size limit." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原生插件请求超出了配置的大小限制。"
+          }
+        }
+      }
+    },
+    "The native extension request is not valid JSON." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原生插件请求不是有效的 JSON。"
+          }
+        }
+      }
+    },
+    "The native extension request timed out." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原生插件请求超时。"
+          }
+        }
+      }
+    },
+    "The native extension request was cancelled." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原生插件请求已取消。"
+          }
+        }
+      }
+    },
+    "The native extension response exceeds the configured size limit." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原生插件响应超出了配置的大小限制。"
+          }
+        }
+      }
+    },
+    "The native extension returned an invalid response." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原生插件返回了无效的响应。"
+          }
+        }
+      }
+    },
+    "The native extension signature is invalid: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原生插件的签名无效：%@"
+          }
+        }
+      }
+    },
+    "This extension does not provide a native helper." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此插件未提供原生辅助程序。"
+          }
+        }
+      }
+    },
+    "Unpin Results" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消固定结果"
+          }
+        }
+      }
+    },
+    "Unsupported native extension protocol: %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支持的原生插件协议：%@"
+          }
+        }
+      }
+    },
+    "Unsupported type \"%@\"." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支持的类型“%@”。"
+          }
+        }
+      }
+    },
+    "Use language correction" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用语言校正"
+          }
+        }
+      }
+    },
+    "Uses the block under the pointer" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用指针下的文本块"
+          }
+        }
+      }
+    },
+    "Uses the paragraph under the pointer" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用指针下的段落"
+          }
+        }
+      }
+    },
+    "Uses the sentence under the pointer" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用指针下的句子"
+          }
+        }
+      }
+    },
+    "Uses the word under the pointer" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用指针下的单词"
+          }
+        }
+      }
+    },
+    "Vertical padding scale" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "垂直边距比例"
+          }
+        }
+      }
+    },
+    "Vertical-center penalty" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "垂直居中惩罚"
+          }
+        }
+      }
+    },
+    "Vision OCR" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vision OCR"
+          }
+        }
+      }
+    },
+    "Waiting" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在等待"
+          }
+        }
+      }
+    },
+    "While results are shown, hold these keys and press 1–9 to switch between extensions." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示结果时，按住这些键再按 1–9 即可在插件之间切换。"
+          }
+        }
+      }
+    },
+    "i18n.toml is not valid TOML at line %lld, column %lld: %@" : {
+      "comment" : "The last value is the TOML parser's description of the problem, in English.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "i18n.toml is not valid TOML at line %1$lld, column %2$lld: %3$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i18n.toml 不是有效的 TOML（第 %1$lld 行，第 %2$lld 列）：%3$@"
+          }
+        }
+      }
+    },
+    "i18n.toml: %@ has no message in the default language, %@." : {
+      "comment" : "A message key's path in i18n.toml, then the extension's default language tag.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "i18n.toml: %1$@ has no message in the default language, %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i18n.toml：%1$@ 在默认语言（%2$@）中没有对应的消息。"
+          }
+        }
+      }
+    },
+    "i18n.toml: %@ is not a setting declared in manifest.toml." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i18n.toml：%@ 不是 manifest.toml 中声明的设置。"
+          }
+        }
+      }
+    },
+    "i18n.toml: %@ is not a supported key." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i18n.toml：%@ 不是受支持的键。"
+          }
+        }
+      }
+    },
+    "i18n.toml: %@ is not a valid message key. Keys start with a letter and contain only letters, digits, and underscores." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i18n.toml：%@ 不是有效的消息键。键必须以字母开头，且只能包含字母、数字和下划线。"
+          }
+        }
+      }
+    },
+    "i18n.toml: %@ is not an option of the setting." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i18n.toml：%@ 不是该设置的选项。"
+          }
+        }
+      }
+    },
+    "i18n.toml: %@ is only supported for choice settings." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i18n.toml：%@ 仅适用于 choice 类型的设置。"
+          }
+        }
+      }
+    },
+    "i18n.toml: %@ must be a string." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i18n.toml：%@ 必须是字符串。"
+          }
+        }
+      }
+    },
+    "i18n.toml: %@ must be a table." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i18n.toml：%@ 必须是表。"
+          }
+        }
+      }
+    },
+    "i18n.toml: “%@” is not a valid language tag. Use a tag such as en, zh-Hans, or pt-BR." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "i18n.toml：“%@”不是有效的语言标签。请使用 en、zh-Hans 或 pt-BR 等标签。"
+          }
+        }
+      }
+    },
+    "manifest.toml: The defaultLanguage “%@” is not a valid language tag. Use a tag such as en, zh-Hans, or pt-BR." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "manifest.toml：defaultLanguage“%@”不是有效的语言标签。请使用 en、zh-Hans 或 pt-BR 等标签。"
+          }
+        }
+      }
+    },
+    "pt" : {
+      "comment" : "Abbreviation for points, shown after a number field.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pt"
+          }
+        }
+      }
+    },
+    "px" : {
+      "comment" : "Abbreviation for pixels, shown after a number field.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "px"
+          }
+        }
+      }
+    },
+    "s" : {
+      "comment" : "Abbreviation for seconds, shown after a number field.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秒"
+          }
+        }
+      }
+    },
+    "× line" : {
+      "comment" : "Shown after a number field whose value is a multiple of the text's line height.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "× 行高"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

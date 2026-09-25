@@ -3,13 +3,22 @@
 const maximumInputLength = 5000
 const defaultTimeoutSeconds = 30
 
+/**
+ * A failed translation. The page explains it in the user's language, so it carries no text of its
+ * own: `code` is `invalidBaseURL`, `unsupportedBaseURL`, `timeout`, `network`, `http`,
+ * `serviceError`, `malformedStream`, `unexpectedResponse`, `emptyTranslation`, or `unknown`.
+ * Depending on the code, the error also has the HTTP `status`, the service's own `serviceMessage`,
+ * the `origin` that could not be reached, the `timeout` in seconds, or the underlying `cause`.
+ */
 export class TranslationError extends Error {
-  constructor(message, { kind = "response", status, hint } = {}) {
-    super(message)
+  constructor(code, { status, serviceMessage, origin, timeout, cause } = {}) {
+    super(code, { cause })
     this.name = "TranslationError"
-    this.kind = kind
+    this.code = code
     this.status = status
-    this.hint = hint
+    this.serviceMessage = serviceMessage
+    this.origin = origin
+    this.timeout = timeout
   }
 }
 
@@ -19,15 +28,10 @@ export function chatCompletionsURL(baseURL) {
   try {
     url = new URL(trimmed)
   } catch {
-    throw new TranslationError("The Base URL is not a valid URL.", {
-      kind: "configuration",
-      hint: "Enter a full URL, such as https://api.openai.com/v1."
-    })
+    throw new TranslationError("invalidBaseURL")
   }
   if (!["https:", "http:"].includes(url.protocol)) {
-    throw new TranslationError("The Base URL must start with https:// or http://.", {
-      kind: "configuration"
-    })
+    throw new TranslationError("unsupportedBaseURL")
   }
   return trimmed.endsWith("/chat/completions") ? trimmed : `${trimmed}/chat/completions`
 }
@@ -110,7 +114,7 @@ export async function translate(options, { signal, onText = () => {}, fetch = gl
       : completionContent(await response.json())
     const text = visibleText(raw).trim()
     if (!text) {
-      throw new TranslationError("The service returned an empty translation.")
+      throw new TranslationError("emptyTranslation")
     }
     return text
   } catch (error) {
@@ -118,21 +122,15 @@ export async function translate(options, { signal, onText = () => {}, fetch = gl
       throw signal.reason
     }
     if (watchdog.signal.aborted) {
-      throw new TranslationError(`The service did not respond within ${timeout} seconds.`, {
-        kind: "timeout",
-        hint: "Try again, or increase the timeout in Auto Translator’s settings."
-      })
+      throw new TranslationError("timeout", { timeout })
     }
     if (error instanceof TranslationError) {
       throw error
     }
     if (error instanceof TypeError) {
-      throw new TranslationError(`Could not connect to ${new URL(url).origin}.`, {
-        kind: "network",
-        hint: "Check the Base URL and your network connection. The service must allow cross-origin requests (CORS)."
-      })
+      throw new TranslationError("network", { origin: new URL(url).origin })
     }
-    throw new TranslationError(error?.message ?? String(error))
+    throw new TranslationError("unknown", { cause: error })
   } finally {
     watchdog.stop()
   }
@@ -231,13 +229,13 @@ function parseEvent(data) {
   try {
     return JSON.parse(data)
   } catch {
-    throw new TranslationError("The service sent a malformed streaming response.")
+    throw new TranslationError("malformedStream")
   }
 }
 
 function contentDelta(event) {
   if (event?.error) {
-    throw new TranslationError(errorMessage(event.error) ?? "The service reported an error.")
+    throw new TranslationError("serviceError", { serviceMessage: errorMessage(event.error) })
   }
   const choice = event?.choices?.[0]
   return textContent(choice?.delta?.content ?? choice?.message?.content ?? choice?.text) ?? ""
@@ -245,12 +243,12 @@ function contentDelta(event) {
 
 function completionContent(response) {
   if (response?.error) {
-    throw new TranslationError(errorMessage(response.error) ?? "The service reported an error.")
+    throw new TranslationError("serviceError", { serviceMessage: errorMessage(response.error) })
   }
   const choice = response?.choices?.[0]
   const content = textContent(choice?.message?.content ?? choice?.text)
   if (content === undefined) {
-    throw new TranslationError("The service returned an unexpected response.")
+    throw new TranslationError("unexpectedResponse")
   }
   return content
 }
@@ -273,10 +271,7 @@ async function httpError(response) {
   try {
     body = await response.text()
   } catch {}
-  return new TranslationError(
-    bodyMessage(body) ?? `The service responded with HTTP ${response.status}.`,
-    { kind: "http", status: response.status, hint: statusHint(response.status) }
-  )
+  return new TranslationError("http", { status: response.status, serviceMessage: bodyMessage(body) })
 }
 
 function bodyMessage(body) {
@@ -293,20 +288,4 @@ function errorMessage(error) {
   if (typeof error === "string") return error
   const message = error?.message ?? error?.detail ?? error?.msg
   return typeof message === "string" && message ? message : undefined
-}
-
-function statusHint(status) {
-  if (status === 401 || status === 403) {
-    return "Check the API key in Auto Translator’s settings."
-  }
-  if (status === 404) {
-    return "Check the Base URL (it usually ends with a version path such as /v1) and the model name."
-  }
-  if (status === 429) {
-    return "The service is limiting requests. Try again in a moment."
-  }
-  if (status >= 500) {
-    return "The service had a problem. Try again later."
-  }
-  return undefined
 }
