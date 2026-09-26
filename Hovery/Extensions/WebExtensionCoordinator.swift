@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import CoreGraphics
 import OSLog
+import SwiftUI
 
 @MainActor
 final class WebExtensionCoordinator: ObservableObject {
@@ -895,7 +896,6 @@ private final class WebExtensionResultsPanelController: NSWindowController {
             configuration: configuration
         )
         resultsViewController.contentCornerRadius = CGFloat(configuration.cornerRadius)
-        updateCornerRadius()
     }
 
     func beginRequest(
@@ -913,7 +913,7 @@ private final class WebExtensionResultsPanelController: NSWindowController {
         contentHeights = [:]
         newlySelectedIdentifier = nil
         currentHeight = CGFloat(configuration.initialHeight)
-        updateCornerRadius()
+        resultsViewController.contentCornerRadius = CGFloat(configuration.cornerRadius)
         resizeAndPosition()
         window?.orderFrontRegardless()
         shortcutMonitor.watchModifiers()
@@ -1087,14 +1087,6 @@ private final class WebExtensionResultsPanelController: NSWindowController {
         )
     }
 
-    private func updateCornerRadius() {
-        guard let contentView = window?.contentView else { return }
-        contentView.wantsLayer = true
-        contentView.layer?.cornerRadius = CGFloat(presentation.cornerRadius)
-        contentView.layer?.cornerCurve = .continuous
-        contentView.layer?.masksToBounds = true
-    }
-
     private func screen(for displayID: CGDirectDisplayID) -> NSScreen? {
         NSScreen.screens.first { screen in
             guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
@@ -1163,7 +1155,10 @@ private final class WebExtensionResultsViewController: NSViewController {
     private var runtimes: [WebExtensionRuntimeController] = []
     private weak var visibleRuntime: WebExtensionRuntimeController?
     var contentCornerRadius: CGFloat = 0 {
-        didSet { contentContainer.cornerRadius = contentCornerRadius }
+        didSet {
+            guard contentCornerRadius != oldValue else { return }
+            updateCornerRadius()
+        }
     }
 
     override func loadView() {
@@ -1171,6 +1166,9 @@ private final class WebExtensionResultsViewController: NSViewController {
         effectView.material = .popover
         effectView.blendingMode = .behindWindow
         effectView.state = .active
+        effectView.wantsLayer = true
+        effectView.layer?.cornerCurve = .continuous
+        effectView.layer?.masksToBounds = true
         view = effectView
 
         tabBar.translatesAutoresizingMaskIntoConstraints = false
@@ -1354,6 +1352,35 @@ private final class WebExtensionResultsViewController: NSViewController {
         for (buttonIndex, button) in tabButtons.enumerated() {
             button.isCurrent = buttonIndex == index
         }
+    }
+
+    private func updateCornerRadius() {
+        view.layer?.cornerRadius = contentCornerRadius
+        // The layer's corners clip the panel's views, but the window server, which draws the
+        // material behind the window, only sees the mask. Without it, it takes the material for a
+        // rectangle and leaves the window's shadow out of the corners, so they look square.
+        (view as? NSVisualEffectView)?.maskImage = Self.cornerMask(radius: contentCornerRadius)
+        contentContainer.cornerRadius = contentCornerRadius
+    }
+
+    /// A stretchable mask with the continuous corners that the view's layer draws.
+    private static func cornerMask(radius: CGFloat) -> NSImage? {
+        guard radius > 0 else { return nil }
+        // Continuous corners curve along this many radii of each edge; only the rest stretches.
+        let capInset = ceil(radius * CALayer.cornerCurveExpansionFactor(.continuous))
+        let image = NSImage(
+            size: NSSize(width: capInset * 2 + 1, height: capInset * 2 + 1),
+            flipped: false
+        ) { rect in
+            NSColor.black.setFill()
+            NSBezierPath(
+                cgPath: Path(roundedRect: rect, cornerRadius: radius, style: .continuous).cgPath
+            ).fill()
+            return true
+        }
+        image.capInsets = NSEdgeInsets(top: capInset, left: capInset, bottom: capInset, right: capInset)
+        image.resizingMode = .stretch
+        return image
     }
 
     private func show(runtime: WebExtensionRuntimeController) {
